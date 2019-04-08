@@ -1,6 +1,6 @@
 using System;
 
-namespace Codeo.CQRS.MySql
+namespace Codeo.CQRS
 {
     /// <summary>
     /// Represents a class that can be used to store cached information.

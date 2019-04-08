@@ -1,4 +1,4 @@
-﻿namespace Codeo.CQRS.MySql
+﻿namespace Codeo.CQRS
 {
     public interface IEntity
     {

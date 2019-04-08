@@ -1,6 +1,6 @@
 using System;
 
-namespace Codeo.CQRS.MySql
+namespace Codeo.CQRS
 {
     public class NoCache : ICache
     {

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Transactions;
-using Codeo.CQRS.MySql.Exceptions;
+using Codeo.CQRS.Exceptions;
 using Newtonsoft.Json;
 
-namespace Codeo.CQRS.MySql
+namespace Codeo.CQRS
 {
     public abstract class Query : BaseSqlExecutor
     {
@@ -29,7 +29,7 @@ namespace Codeo.CQRS.MySql
         {
             if (Transaction.Current == null)
             {
-                throw new TransactionScopeRequiredException(this);
+                throw new TransactionScopeRequired(this);
             }
         }
     }

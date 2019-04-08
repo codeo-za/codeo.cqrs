@@ -1,7 +1,7 @@
 ﻿using System;
 using Newtonsoft.Json;
 
-namespace Codeo.CQRS.MySql.Exceptions
+namespace Codeo.CQRS.Exceptions
 {
     public class EntityDoesNotExistException : Exception
     {

@@ -2,7 +2,7 @@
 using System.Data;
 using Dapper;
 
-namespace Codeo.CQRS.MySql
+namespace Codeo.CQRS
 {
     /// <summary>
     /// Dapper Date Time Handler

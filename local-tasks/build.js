@@ -9,9 +9,8 @@ gulp.task("build-for-release",
   "Builds all Visual Studio solutions in tree",
   ["nuget-restore"],
   () => {
-    console.log("--- build-for-release ---");
     return gulp.src([
-      "src/RetailStudioApiClient.sln"
+      "src/Codeo.CQRS.sln"
     ]).pipe(msbuild({
       toolsVersion: "auto",
       targets: ["Clean", "Build"],

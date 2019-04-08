@@ -1,77 +1,233 @@
 using System;
-using System.Data.Common;
-using Dapper;
-using NUnit.Framework;
-using PeanutButter.TempDb.MySql;
+using System.Collections.Generic;
+using System.Transactions;
+using Codeo.CQRS.Exceptions;
 using NExpect;
+using NUnit.Framework;
+using static PeanutButter.RandomGenerators.RandomValueGen;
+using PeanutButter.Utils;
 using static NExpect.Expectations;
 
-namespace Codeo.CQRS.MySql.Tests
+namespace Codeo.CQRS.Tests
 {
     [TestFixture]
     public class TestQuery
     {
-        public class FindCarlSaganQuery : Query<Person>
+        [Test]
+        public void ShouldBeAbleToReadSingleResult()
+        {
+            // Arrange
+            var queryExecutor = new QueryExecutor();
+            // Act
+            var result = queryExecutor.Execute(new FindCarlSaganQuery());
+            // Assert
+            Expect(result).Not.To.Be.Null();
+            Expect(result.Name).To.Equal("Carl Sagan");
+        }
+
+        [Test]
+        public void ShouldBeAbleToInsertAndReadASingleResult()
+        {
+            // Arrange
+            var queryExecutor = new QueryExecutor();
+            var commandExecutor = new CommandExecutor();
+            var name = GetRandomString(10, 20);
+            commandExecutor.Execute(new CreatePerson(name));
+            // Act
+            var result = queryExecutor.Execute(new FindPersonByName(name));
+            // Assert
+            Expect(result).To.Intersection.Equal(new {Name = name});
+        }
+
+        [Test]
+        public void ShouldBeAbleToReadMultipleResults()
+        {
+            // Arrange
+            var name1 = GetRandomString(10, 20);
+            var name2 = GetRandomString(10, 20);
+            CreatePerson(name1);
+            CreatePerson(name2);
+            var queryExecutor = new QueryExecutor();
+            // Act
+            var results = queryExecutor.Execute(
+                new FindAllPeople()
+            );
+            // Assert
+            Expect(results).Not.To.Be.Empty();
+            Expect(results).To.Contain.Exactly(1).Matched.By(p => p.Name == name1);
+            Expect(results).To.Contain.Exactly(1).Matched.By(p => p.Name == name2);
+        }
+
+        [TestFixture]
+        public class WhenTransactionIsRequired: TestQuery
         {
             [Test]
-            public void ShouldBeAbleToReadSingleResult()
+            public void ShouldThrowIfNoneAvailable()
             {
                 // Arrange
-                var queryExecutor = new QueryExecutor();
+                var name = GetRandomString(10, 20);
+                var executor = new CommandExecutor();
                 // Act
-                var result = queryExecutor.Execute(new FindCarlSaganQuery());
+                Expect(() => executor.Execute(new InsertPeople(name)))
+                    .To.Throw<TransactionScopeRequired>();
                 // Assert
-                Expect(result).Not.To.Be.Null();
-                Expect(result.Name).To.Equal("Carl Sagan");
             }
 
-            public override void Execute()
+            [Test]
+            public void ShouldNotThrowIfAvailable()
             {
-                Result = SelectFirst<Person>("select * from people where name = 'Carl Sagan';");
+                // Arrange
+                var names = GetRandomArray<string>(5);
+                var executor = new CommandExecutor();
+                var result = new List<int>();
+                // Act
+                using (var scope = TransactionScopes.ReadCommitted(TransactionScopeOption.RequiresNew))
+                {
+                    Expect(() =>
+                    {
+                        result.AddRange(executor.Execute(new InsertPeople(names)));
+                    }).Not.To.Throw();
+                    
+                    scope.Complete();
+                }
+
+                // Assert
+                Expect(result).Not.To.Be.Empty();
+                Expect(result).To.Contain.Exactly(names.Length).Items();
+                var queryExecutor = new QueryExecutor();
+                result.ForEach(id =>
+                {
+                    var inDb = queryExecutor.Execute(new FindPersonById(id));
+                    Expect(names).To.Contain(inDb.Name);
+                });
             }
         }
 
-        public class Person : IEntity
+        private void CreatePerson(string name)
         {
-            public string Name { get; set; }
-            public bool Enabled { get; set; }
-            public DateTime Created { get; set; }
+            var commandExecutor = new CommandExecutor();
+            commandExecutor.Execute(
+                new CreatePerson(name)
+            );
         }
     }
 
-    [SetUpFixture]
-    public class GlobalSetup
+    public class InsertPeople : Command<IEnumerable<int>>
     {
-        private TempDBMySql _db;
+        public IEnumerable<string> Names { get; }
 
-        [OneTimeSetUp]
-        public void OneTimeSetup()
+        public InsertPeople(params string[] names)
         {
-            _db = new TempDBMySql();
-            Fluently.Configure()
-                    .WithConnectionProvider(() => _db.CreateConnection())
-                    .WithEntitiesFrom(typeof(TestQuery).Assembly);
-            CreateBasicSchemaWith(_db.CreateConnection());
+            Names = names;
         }
 
-        private void CreateBasicSchemaWith(DbConnection connection)
+        public override void Execute()
         {
-            connection.Query(@"
-create table people(
-  id integer not null primary key auto_increment, 
-  name text,
-  enabled bit,
-  created datetime);
-");
-            connection.Query("insert into people(name, enabled, created) values ('Carl Sagan', 1, NOW());");
-        }
-
-        [OneTimeTearDown]
-        public void OneTimeTearDown()
-        {
-            _db?.Dispose();
-            _db = null;
+            ValidateTransactionScope();
+            var ids = new List<int>();
+            Names.ForEach(name =>
+            {
+                var id = CommandExecutor.Execute(new CreatePerson(name));
+                ids.Add(id);
+            });
+            Result = ids;
         }
     }
 
+    public class FindAllPeople : Query<IEnumerable<Person>>
+    {
+        public override void Execute()
+        {
+            Result = SelectMany<Person>("select * from people;");
+        }
+    }
+
+    public class FindPersonById : Query<Person>
+    {
+        public int Id { get; }
+
+        public FindPersonById(int id)
+        {
+            Id = id;
+        }
+
+        public override void Execute()
+        {
+            Result = SelectFirst<Person>(
+                         "select * from people where id = @id;", new {Id})
+                     ?? throw new PersonNotFound(Id);
+        }
+    }
+
+    public class CreatePerson : Command<int>
+    {
+        public string Name { get; }
+        public bool Enabled { get; }
+
+        public CreatePerson(
+            string name,
+            bool enabled = true)
+        {
+            Name = name;
+            Enabled = enabled;
+        }
+
+        public override void Execute()
+        {
+            Result = InsertGetFirst<int>(@"
+insert into people (
+                    name,
+                    enabled,
+                    created
+                    ) values 
+                             (
+                              @name,
+                              @enabled,
+                              @created
+                              ); 
+select last_insert_id();",
+                                         new
+                                         {
+                                             Name,
+                                             Enabled,
+                                             Created = DateTime.Now
+                                         });
+        }
+    }
+
+    public class FindPersonByName : Query<Person>
+    {
+        public string Name { get; }
+
+        public FindPersonByName(string name)
+        {
+            Name = name;
+        }
+
+        public override void Execute()
+        {
+            Result = SelectFirst<Person>("select * from people where name = @name", new {Name});
+        }
+    }
+
+    public class FindCarlSaganQuery : FindPersonByName
+    {
+        public FindCarlSaganQuery() : base("Carl Sagan")
+        {
+        }
+    }
+
+    public class Person : IEntity
+    {
+        public string Name { get; set; }
+        public bool Enabled { get; set; }
+        public DateTime Created { get; set; }
+    }
+
+    public class PersonNotFound : Exception
+    {
+        public PersonNotFound(int id) : base($"Person not found by id: {id}")
+        {
+        }
+    }
 }

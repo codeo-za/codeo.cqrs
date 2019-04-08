@@ -14,7 +14,7 @@ gulp.task("pack", ["prepare-pack"], () => {
 function doPack() {
   return spawn("tools/nuget.exe", [
     "pack",
-    "src/RetailStudio.ApiClient/Package.nuspec",
+    "src/Codeo.CQRS/Package.nuspec",
     "-OutputDirectory",
     packageDir
   ]);

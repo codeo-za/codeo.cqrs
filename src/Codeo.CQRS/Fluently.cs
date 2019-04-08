@@ -2,10 +2,10 @@ using System;
 using System.Data;
 using System.Linq;
 using System.Reflection;
-using Codeo.CQRS.MySql.Exceptions;
+using Codeo.CQRS.Exceptions;
 using Dapper;
 
-namespace Codeo.CQRS.MySql
+namespace Codeo.CQRS
 {
     public class Fluently
     {

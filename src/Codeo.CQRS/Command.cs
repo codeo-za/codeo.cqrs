@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Transactions;
-using Codeo.CQRS.MySql.Exceptions;
+using Codeo.CQRS.Exceptions;
 
-namespace Codeo.CQRS.MySql
+namespace Codeo.CQRS
 {
     public abstract class Command : BaseSqlExecutor
     {
@@ -45,12 +45,12 @@ namespace Codeo.CQRS.MySql
         /// <summary>
         /// Ensures that a transaction scope is available
         /// </summary>
-        /// <exception cref="TransactionScopeRequiredException"></exception>
+        /// <exception cref="TransactionScopeRequired"></exception>
         public void ValidateTransactionScope()
         {
             if (Transaction.Current == null)
             {
-                throw new TransactionScopeRequiredException(this);
+                throw new TransactionScopeRequired(this);
             }
         }
 

@@ -2,12 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using Codeo.CQRS.MySql.Exceptions;
+using Codeo.CQRS.Exceptions;
 using Dapper;
 
-namespace Codeo.CQRS.MySql
+namespace Codeo.CQRS
 {
-    public class BaseSqlExecutor
+    public abstract class BaseSqlExecutor
     {
         internal static Func<IDbConnection> ConnectionFactory = () => throw new ConfigurationException("ConnectionFactory is not defined");
         internal static Dictionary<Type, Action<Operation, Exception>> ExceptionHandlers = new Dictionary<Type, Action<Operation, Exception>>();
@@ -17,9 +17,9 @@ namespace Codeo.CQRS.MySql
         {
         }
 
-        public List<T> SelectList<T>(string sql, object parameters = null)
+        public IEnumerable<T> SelectMany<T>(string sql, object parameters = null)
         {
-            return QueryList<T>(Operation.Select, sql, parameters)
+            return QueryCollection<T>(Operation.Select, sql, parameters)
                    ??
                    // there are many usages of Query<T> where the result
                    //    isn't checked, but is immediately chained into LINQ,
@@ -114,7 +114,11 @@ namespace Codeo.CQRS.MySql
             }
             catch (Exception ex)
             {
-                TryHandleException(Operation.Select, ex);
+                if (!TryHandleException(Operation.Select, ex))
+                {
+                    throw;
+                }
+
                 return default(List<TReturnItem>);
             }
         }
@@ -130,14 +134,15 @@ namespace Codeo.CQRS.MySql
             return null;
         }
 
-        private void TryHandleException(Operation operation, Exception ex)
+        private bool TryHandleException(Operation operation, Exception ex)
         {
             var handler = FindHandlerFor(ex);
             if (handler == null)
             {
-                throw new UnhandledException(ex);
+                return false;
             }
             handler.Invoke(operation, ex);
+            return true;
         }
 
 
@@ -179,9 +184,9 @@ namespace Codeo.CQRS.MySql
             }
         }
 
-        public List<T> UpdateGetList<T>(string sql, object parameters = null)
+        public IEnumerable<T> UpdateGetList<T>(string sql, object parameters = null)
         {
-            return QueryList<T>(Operation.Update, sql, parameters);
+            return QueryCollection<T>(Operation.Update, sql, parameters);
         }
 
         public T UpdateGetFirst<T>(string sql, object parameters = null)
@@ -189,9 +194,9 @@ namespace Codeo.CQRS.MySql
             return QueryFirst<T>(Operation.Update, sql, parameters);
         }
 
-        public List<T> InsertGetList<T>(string sql, object parameters = null)
+        public IEnumerable<T> InsertGetList<T>(string sql, object parameters = null)
         {
-            return QueryList<T>(Operation.Insert, sql, parameters);
+            return QueryCollection<T>(Operation.Insert, sql, parameters);
         }
 
         public T InsertGetFirst<T>(string sql, object parameters = null)
@@ -199,9 +204,9 @@ namespace Codeo.CQRS.MySql
             return QueryFirst<T>(Operation.Insert, sql, parameters);
         }
 
-        public List<T> DeleteGetList<T>(string sql, object parameters = null)
+        public IEnumerable<T> DeleteGetList<T>(string sql, object parameters = null)
         {
-            return QueryList<T>(Operation.Delete, sql, parameters);
+            return QueryCollection<T>(Operation.Delete, sql, parameters);
         }
 
         public T DeleteGetFirst<T>(string sql, object parameters = null)
@@ -226,27 +231,6 @@ namespace Codeo.CQRS.MySql
         }
 
         /// <summary>
-        /// Legacy database request
-        /// </summary>
-        /// <param name="operation"></param>
-        /// <param name="executor"></param>
-        [Obsolete]
-        public void DatabaseRequest(Operation operation, Action<IDbConnection> executor)
-        {
-            using (var connection = CreateOpenConnection())
-            {
-                try
-                {
-                    executor(connection);
-                }
-                catch (Exception ex)
-                {
-                    FindHandlerFor(ex)?.Invoke(operation, ex);
-                }
-            }
-        }
-
-        /// <summary>
         /// Executes a query returning a list
         /// </summary>
         /// <typeparam name="T"></typeparam>
@@ -254,7 +238,7 @@ namespace Codeo.CQRS.MySql
         /// <param name="sql"></param>
         /// <param name="parameters"></param>
         /// <returns></returns>
-        private List<T> QueryList<T>(Operation operation, string sql, object parameters)
+        private IEnumerable<T> QueryCollection<T>(Operation operation, string sql, object parameters)
         {
             using (var connection = CreateOpenConnection())
             {
@@ -267,7 +251,7 @@ namespace Codeo.CQRS.MySql
             }
         }
 
-        private List<T> RunListResultOnConnection<T>(
+        private IEnumerable<T> RunListResultOnConnection<T>(
             Operation operation,
             IDbConnection connection,
             string sql,
@@ -276,11 +260,15 @@ namespace Codeo.CQRS.MySql
         {
             try
             {
-                return connection.Query<T>(sql, parameters).ToList();
+                return connection.Query<T>(sql, parameters);
             }
             catch (Exception ex)
             {
-                TryHandleException(operation, ex);
+                if (!TryHandleException(operation, ex))
+                {
+                    throw;
+                }
+
                 return new List<T>();
             }
         }
@@ -315,7 +303,11 @@ namespace Codeo.CQRS.MySql
             }
             catch (Exception ex)
             {
-                TryHandleException(operation, ex);
+                if (!TryHandleException(operation, ex))
+                {
+                    throw;
+                }
+
                 return default(T);
             }
         }
@@ -350,21 +342,14 @@ namespace Codeo.CQRS.MySql
             }
             catch (Exception ex)
             {
-                TryHandleException(operation, ex);
+                if (!TryHandleException(operation, ex))
+                {
+                    throw;
+                }
+
                 return default(int);
             }
         }
-
-//        private void ProcessMySqlException(Operation operation, MySqlException ex)
-//        private void ProcessMySqlException(Operation operation, MySqlException ex)
-//        {
-//            if (ex.Message.StartsWith("Duplicate entry"))
-//            {
-//                throw new UniqueConstraintViolationException(operation, GetType().Name, this, ex);
-//            }
-//
-//            throw new DatabaseException(operation, GetType().Name, this, ex);
-//        }
     }
 
     public class ConfigurationException : Exception

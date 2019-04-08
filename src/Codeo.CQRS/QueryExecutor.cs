@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Codeo.CQRS.MySql
+namespace Codeo.CQRS
 {
     public interface IQueryExecutor
     {
@@ -29,6 +29,7 @@ namespace Codeo.CQRS.MySql
     public class QueryExecutor : IQueryExecutor
     {
         internal static ICache Cache = new NoCache();
+
         /// <summary>
         /// Executes the specified query.
         /// </summary>

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Codeo.CQRS.MySql.Exceptions
+namespace Codeo.CQRS.Exceptions
 {
     /// <summary>
     /// This exception should be thrown when a UNIQUE database constraint is violated

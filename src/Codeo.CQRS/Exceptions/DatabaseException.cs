@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 
-namespace Codeo.CQRS.MySql.Exceptions
+namespace Codeo.CQRS.Exceptions
 {
     /// <summary>
     /// Custom exception to handle Common DB exceptions

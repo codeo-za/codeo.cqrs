@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Codeo.CQRS.MySql
+namespace Codeo.CQRS
 {
     public interface ICommandExecutor
     {
