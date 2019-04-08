@@ -5,7 +5,8 @@
     "main": "gulpfile.js",
     "scripts": {
         "test": "cross-env BUILD_TOOLS_FOLDER=tools gulp test-dotnet",
-        "gulp": "cross-env BUILD_TOOLS_FOLDER=tools gulp"
+        "gulp": "cross-env BUILD_TOOLS_FOLDER=tools gulp",
+        "release": "cross-env BUILD_TOOLS_FOLDER=tools gulp release"
     },
     "author": "",
     "license": "ISC",
