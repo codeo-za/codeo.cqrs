@@ -1,11 +1,11 @@
-using System;
 using System.Collections.Generic;
 using System.Transactions;
 using Codeo.CQRS.Exceptions;
+using Codeo.CQRS.Tests.Commands;
+using Codeo.CQRS.Tests.Queries;
 using NExpect;
 using NUnit.Framework;
 using static PeanutButter.RandomGenerators.RandomValueGen;
-using PeanutButter.Utils;
 using static NExpect.Expectations;
 
 namespace Codeo.CQRS.Tests
@@ -19,7 +19,7 @@ namespace Codeo.CQRS.Tests
             // Arrange
             var queryExecutor = new QueryExecutor();
             // Act
-            var result = queryExecutor.Execute(new FindCarlSaganQuery());
+            var result = queryExecutor.Execute(new FindCarlSagan());
             // Assert
             Expect(result).Not.To.Be.Null();
             Expect(result.Name).To.Equal("Carl Sagan");
@@ -68,7 +68,7 @@ namespace Codeo.CQRS.Tests
                 var name = GetRandomString(10, 20);
                 var executor = new CommandExecutor();
                 // Act
-                Expect(() => executor.Execute(new InsertPeople(name)))
+                Expect(() => executor.Execute(new CreatePeople(name)))
                     .To.Throw<TransactionScopeRequired>();
                 // Assert
             }
@@ -85,7 +85,7 @@ namespace Codeo.CQRS.Tests
                 {
                     Expect(() =>
                     {
-                        result.AddRange(executor.Execute(new InsertPeople(names)));
+                        result.AddRange(executor.Execute(new CreatePeople(names)));
                     }).Not.To.Throw();
                     
                     scope.Complete();
@@ -109,125 +109,6 @@ namespace Codeo.CQRS.Tests
             commandExecutor.Execute(
                 new CreatePerson(name)
             );
-        }
-    }
-
-    public class InsertPeople : Command<IEnumerable<int>>
-    {
-        public IEnumerable<string> Names { get; }
-
-        public InsertPeople(params string[] names)
-        {
-            Names = names;
-        }
-
-        public override void Execute()
-        {
-            ValidateTransactionScope();
-            var ids = new List<int>();
-            Names.ForEach(name =>
-            {
-                var id = CommandExecutor.Execute(new CreatePerson(name));
-                ids.Add(id);
-            });
-            Result = ids;
-        }
-    }
-
-    public class FindAllPeople : Query<IEnumerable<Person>>
-    {
-        public override void Execute()
-        {
-            Result = SelectMany<Person>("select * from people;");
-        }
-    }
-
-    public class FindPersonById : Query<Person>
-    {
-        public int Id { get; }
-
-        public FindPersonById(int id)
-        {
-            Id = id;
-        }
-
-        public override void Execute()
-        {
-            Result = SelectFirst<Person>(
-                         "select * from people where id = @id;", new {Id})
-                     ?? throw new PersonNotFound(Id);
-        }
-    }
-
-    public class CreatePerson : Command<int>
-    {
-        public string Name { get; }
-        public bool Enabled { get; }
-
-        public CreatePerson(
-            string name,
-            bool enabled = true)
-        {
-            Name = name;
-            Enabled = enabled;
-        }
-
-        public override void Execute()
-        {
-            Result = InsertGetFirst<int>(@"
-insert into people (
-                    name,
-                    enabled,
-                    created
-                    ) values 
-                             (
-                              @name,
-                              @enabled,
-                              @created
-                              ); 
-select last_insert_id();",
-                                         new
-                                         {
-                                             Name,
-                                             Enabled,
-                                             Created = DateTime.Now
-                                         });
-        }
-    }
-
-    public class FindPersonByName : Query<Person>
-    {
-        public string Name { get; }
-
-        public FindPersonByName(string name)
-        {
-            Name = name;
-        }
-
-        public override void Execute()
-        {
-            Result = SelectFirst<Person>("select * from people where name = @name", new {Name});
-        }
-    }
-
-    public class FindCarlSaganQuery : FindPersonByName
-    {
-        public FindCarlSaganQuery() : base("Carl Sagan")
-        {
-        }
-    }
-
-    public class Person : IEntity
-    {
-        public string Name { get; set; }
-        public bool Enabled { get; set; }
-        public DateTime Created { get; set; }
-    }
-
-    public class PersonNotFound : Exception
-    {
-        public PersonNotFound(int id) : base($"Person not found by id: {id}")
-        {
         }
     }
 }
