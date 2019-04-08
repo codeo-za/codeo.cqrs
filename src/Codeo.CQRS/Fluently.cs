@@ -49,7 +49,12 @@ namespace Codeo.CQRS
             public Configuration WithEntitiesFrom(Assembly assembly)
             {
                 var entityType = typeof(IEntity);
-                var entityTypes = assembly.GetTypes().Where(x => entityType.IsAssignableFrom(x) && x != entityType);
+                return WithEntitiesFrom(assembly, x => entityType.IsAssignableFrom(x) && x != entityType);
+            }
+
+            public Configuration WithEntitiesFrom(Assembly assembly, Func<Type, bool> discriminator)
+            {
+                var entityTypes = assembly.GetTypes().Where(discriminator);
 
                 // Setup the date handlers to specify the DateTime Kind to UTC when pulling from the database
                 SqlMapper.AddTypeHandler(typeof(DateTime), new DateTimeHandler());
