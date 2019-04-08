@@ -2,7 +2,7 @@ using System;
 
 namespace Codeo.CQRS.Tests
 {
-    public class Person : IEntity
+    public class PersonLike
     {
         public string Name { get; set; }
         public bool Enabled { get; set; }

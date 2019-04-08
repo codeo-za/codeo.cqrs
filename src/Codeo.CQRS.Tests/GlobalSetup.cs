@@ -27,9 +27,10 @@ create table people(
   id integer not null primary key auto_increment, 
   name text,
   enabled bit,
+  date_of_birth datetime null,
   created datetime);
 ");
-            connection.Query("insert into people(name, enabled, created) values ('Carl Sagan', 1, CURRENT_TIMESTAMP);");
+            connection.Query("insert into people(name, date_of_birth, enabled, created) values ('Carl Sagan', '1934/11/09', 1,  CURRENT_TIMESTAMP);");
         }
 
         [OneTimeTearDown]

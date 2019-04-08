@@ -57,11 +57,27 @@ namespace Codeo.CQRS
 
                 foreach (var eType in entityTypes)
                 {
-                    SqlMapper.SetTypeMap(eType, Map(eType));
+                    MapEntityType(eType);
                 }
+
                 return this;
             }
-            
+
+            private static object _mapLock = new object();
+            public static void MapEntityType(Type type)
+            {
+                lock (_mapLock)
+                {
+                    if (BaseSqlExecutor.KnownMappedTypes.Contains(type))
+                    {
+                        // may have been added between the start of this call and now
+                        return;
+                    }
+                    SqlMapper.SetTypeMap(type, Map(type));
+                    BaseSqlExecutor.KnownMappedTypes.Add(type);
+                }
+            }
+
             private static CustomPropertyTypeMap Map(Type eType)
             {
                 return new CustomPropertyTypeMap(
@@ -71,7 +87,8 @@ namespace Codeo.CQRS
                         var cleanedColumnName = column.Replace("_", "");
                         var mappedProperty =
                             type.GetProperties()
-                                .FirstOrDefault(x => x.Name.Equals(cleanedColumnName, StringComparison.OrdinalIgnoreCase));
+                                .FirstOrDefault(
+                                    x => x.Name.Equals(cleanedColumnName, StringComparison.OrdinalIgnoreCase));
 
                         return mappedProperty;
                     }

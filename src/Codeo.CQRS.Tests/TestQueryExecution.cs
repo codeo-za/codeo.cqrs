@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Transactions;
 using Codeo.CQRS.Exceptions;
 using Codeo.CQRS.Tests.Commands;
@@ -102,6 +104,36 @@ namespace Codeo.CQRS.Tests
                 });
             }
         }
+        
+        [Test]
+        public void ShouldBeAbleToReadSingleResultOfNonEntity()
+        {
+            // Arrange
+            var queryExecutor = new QueryExecutor();
+            // Act
+            var result = queryExecutor.Execute(new FindCarlSaganAlike());
+            // Assert
+            Expect(result).Not.To.Be.Null();
+            Expect(result.Name).To.Equal("Carl Sagan");
+            Expect(result.DateOfBirth).To.Equal(new DateTime(1934, 11, 9, 0, 0, 0, DateTimeKind.Utc));
+        }
+        
+        [Test]
+        public void ShouldBeAbleToReadManyResultsOfNonEntity()
+        {
+            // Arrange
+            var queryExecutor = new QueryExecutor();
+            var query = new FindCarlSaganAlikes();
+            // Act
+            var results = queryExecutor.Execute(query);
+            // Assert
+            Expect(results).Not.To.Be.Null();
+            Expect(results).To.Contain.Exactly(1).Item();
+            var result = results.First();
+            Expect(result.Name).To.Equal("Carl Sagan");
+            Expect(result.DateOfBirth).To.Equal(new DateTime(1934, 11, 9, 0, 0, 0, DateTimeKind.Utc));
+        }
+
 
         private void CreatePerson(string name)
         {
