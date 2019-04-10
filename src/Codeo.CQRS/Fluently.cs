@@ -7,7 +7,7 @@ using Dapper;
 
 namespace Codeo.CQRS
 {
-    public class Fluently
+    public static class Fluently
     {
         public static Configuration Configure()
         {
@@ -68,10 +68,10 @@ namespace Codeo.CQRS
                 return this;
             }
 
-            private static object _mapLock = new object();
+            private static readonly object MapLock = new object();
             public static void MapEntityType(Type type)
             {
-                lock (_mapLock)
+                lock (MapLock)
                 {
                     if (BaseSqlExecutor.KnownMappedTypes.Contains(type))
                     {
