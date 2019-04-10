@@ -7,10 +7,8 @@ namespace Codeo.CQRS
 {
     public abstract class Query : BaseSqlExecutor
     {
-        internal static Func<IQueryExecutor> QueryExecutorFactory = () => new QueryExecutor();
-
         [JsonIgnore]
-        public IQueryExecutor QueryExecutor { get; set; } = QueryExecutorFactory();
+        public IQueryExecutor QueryExecutor { get; set; }
 
         /// <summary>
         /// Executes this instance.

@@ -29,8 +29,17 @@ namespace Codeo.CQRS
 
     public class CommandExecutor : ICommandExecutor
     {
-        internal static Func<IQueryExecutor> QueryExecutorFactory = () => new QueryExecutor();
-        internal static ICache Cache = new NoCache();
+        private IQueryExecutor queryExecutor { get; set; }
+        private ICache cache { get; set; }
+        
+        public CommandExecutor(
+            IQueryExecutor queryExecutor,
+            ICache cache)
+        {
+            this.queryExecutor = queryExecutor;
+            this.cache = cache;
+        }
+        
         /// <summary>
         /// Executes the specified command.
         /// </summary>
@@ -42,9 +51,9 @@ namespace Codeo.CQRS
                 throw new ArgumentNullException(nameof(command));
             }
 
-            command.QueryExecutor = command.QueryExecutor ?? QueryExecutorFactory();
+            command.QueryExecutor = command.QueryExecutor ?? this.queryExecutor;
             command.CommandExecutor = command.CommandExecutor ?? this;
-            command.Cache = command.Cache ?? Cache;
+            command.Cache = command.Cache ?? cache;
             command.Validate();
             command.Execute();
         }

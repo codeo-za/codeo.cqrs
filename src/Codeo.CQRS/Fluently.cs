@@ -33,19 +33,6 @@ namespace Codeo.CQRS
                 return this;
             }
 
-            public Configuration WithCache(ICache cache)
-            {
-                QueryExecutor.Cache = cache;
-                CommandExecutor.Cache = cache;
-                return this;
-            }
-
-            public Configuration WithQueryExecutorFactory(Func<IQueryExecutor> factory)
-            {
-                CommandExecutor.QueryExecutorFactory = factory;
-                return this;
-            }
-
             public Configuration WithEntitiesFrom(Assembly assembly)
             {
                 var entityType = typeof(IEntity);
@@ -73,13 +60,13 @@ namespace Codeo.CQRS
             {
                 lock (MapLock)
                 {
-                    if (BaseSqlExecutor.KnownMappedTypes.Contains(type))
+                    if (BaseSqlExecutor.KnownMappedTypes.ContainsKey(type))
                     {
                         // may have been added between the start of this call and now
                         return;
                     }
                     SqlMapper.SetTypeMap(type, Map(type));
-                    BaseSqlExecutor.KnownMappedTypes.Add(type);
+                    BaseSqlExecutor.KnownMappedTypes.TryAdd(type, true);
                 }
             }
 

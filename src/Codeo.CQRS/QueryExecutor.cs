@@ -28,8 +28,13 @@ namespace Codeo.CQRS
 
     public class QueryExecutor : IQueryExecutor
     {
-        internal static ICache Cache = new NoCache();
-
+        private ICache cache;
+        
+        public QueryExecutor(ICache cache)
+        {
+            this.cache = cache;
+        }
+        
         /// <summary>
         /// Executes the specified query.
         /// </summary>
@@ -59,7 +64,7 @@ namespace Codeo.CQRS
             }
 
             query.QueryExecutor = this;
-            query.Cache = query.Cache ?? Cache;
+            query.Cache = query.Cache ?? cache;
             query.Validate();
             query.Execute();
         }

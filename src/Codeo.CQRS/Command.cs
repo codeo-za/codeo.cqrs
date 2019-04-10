@@ -16,7 +16,7 @@ namespace Codeo.CQRS
         /// <summary>
         /// allows the caller to opt in to the current transaction's completion event
         /// </summary>
-        protected void NotifyOnTransactionCompleted(Action<TransactionEventArgs> handler)
+        public void OnTransactionCompleted(Action<TransactionEventArgs> handler)
         {
             lock (_transactionCompletedHandlers)
             {

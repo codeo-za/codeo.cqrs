@@ -4,16 +4,20 @@ using System.Data;
 using System.Linq;
 using Codeo.CQRS.Exceptions;
 using Dapper;
+using System.Collections.Concurrent;
 
 namespace Codeo.CQRS
 {
     public abstract class BaseSqlExecutor
     {
-        internal static Func<IDbConnection> ConnectionFactory = () => throw new ConfigurationException("ConnectionFactory is not defined");
-        internal static Dictionary<Type, Action<Operation, Exception>> ExceptionHandlers = new Dictionary<Type, Action<Operation, Exception>>();
+        internal static Func<IDbConnection> ConnectionFactory =
+            () => throw new ConfigurationException("ConnectionFactory is not defined");
+        internal static Dictionary<Type, Action<Operation, Exception>> ExceptionHandlers
+            = new Dictionary<Type, Action<Operation, Exception>>();
         public ICache Cache { get; set; } = new NoCache();
 
-        internal static readonly HashSet<Type> KnownMappedTypes = new HashSet<Type>();
+        internal static readonly ConcurrentDictionary<Type, bool> KnownMappedTypes 
+            = new ConcurrentDictionary<Type, bool>();
 
         public IEnumerable<T> SelectMany<T>(string sql, object parameters = null)
         {
@@ -28,9 +32,14 @@ namespace Codeo.CQRS
                    );
         }
 
-        public T SelectFirst<T>(string sql, object parameters = null)
+        public T SelectFirst<T>(
+            string sql,
+            object parameters = null)
         {
-            return QueryFirst<T>(Operation.Select, sql, parameters);
+            return QueryFirst<T>(
+                Operation.Select,
+                sql,
+                parameters);
         }
 
 
@@ -360,7 +369,7 @@ namespace Codeo.CQRS
         {
             var type = typeof(T);
             type = type.GetCollectionItemType() ?? type;
-            if (KnownMappedTypes.Contains(type))
+            if (KnownMappedTypes.ContainsKey(type))
             {
                 return;
             }
@@ -373,13 +382,6 @@ namespace Codeo.CQRS
         public ConfigurationException(string message): base(message)
         {
             throw new NotImplementedException();
-        }
-    }
-
-    public class UnhandledException : Exception
-    {
-        public UnhandledException(Exception original) : base("Unhandled exception", original)
-        {
         }
     }
 }
