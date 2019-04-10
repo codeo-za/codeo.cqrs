@@ -1,3 +1,4 @@
+using System.Transactions;
 using NExpect;
 using NUnit.Framework;
 using static NExpect.Expectations;
@@ -23,20 +24,21 @@ namespace Codeo.CQRS.Tests
             }
             
             [Test]
-            public void WhenTransactionExists_AndTransactionHandlerUsed_AnyTransactionRollback_ShouldntInvokeHandler()
+            public void WhenTransactionExists_AndTransactionHandlerUsed_AndTransactionRollback_ShouldInvokeHandler()
             {
                 // arrange
                 var sut = this.Create();
-                var handlerInvoked = false;
+                TransactionStatus? transactionStatus = null;
 
                 // act
-                using (var scope = TransactionScopes.ReadCommitted())
+                using (TransactionScopes.ReadCommitted())
                 {
-                    sut.OnTransactionCompleted(e => handlerInvoked = true);
+                    sut.OnTransactionCompleted(
+                        e => transactionStatus = e.Transaction.TransactionInformation.Status);
                 }
                 
                 // assert
-                Expect(handlerInvoked).To.Be.False();
+                Expect(transactionStatus).To.Equal(TransactionStatus.Aborted);
             }
             
             [Test]
@@ -44,17 +46,19 @@ namespace Codeo.CQRS.Tests
             {
                 // arrange
                 var sut = this.Create();
-                var handlerInvoked = false;
+                TransactionStatus? transactionStatus = null;
 
                 // act
                 using (var scope = TransactionScopes.ReadCommitted())
                 {
-                    sut.OnTransactionCompleted(e => handlerInvoked = true);
+                    sut.OnTransactionCompleted(
+                        e => transactionStatus = e.Transaction.TransactionInformation.Status);
+                    
                     scope.Complete();
                 }
                 
                 // assert
-                Expect(handlerInvoked).To.Be.True();
+                Expect(transactionStatus).To.Equal(TransactionStatus.Committed);
             }
         }
 
