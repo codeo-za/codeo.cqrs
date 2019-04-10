@@ -20,15 +20,12 @@ namespace Codeo.CQRS
         {
             lock (_transactionCompletedHandlers)
             {
-                if (Transaction.Current != null)
+                if (Transaction.Current == null)
                 {
-                    _transactionCompletedHandlers.Add(handler);
-                    Transaction.Current.TransactionCompleted += (sender, args) => OnCommandTransactionComplete(args);
+                    throw new InvalidOperationException("No ambient transaction scope exists");
                 }
-                else
-                {
-                    handler(new TransactionEventArgs());
-                }
+                _transactionCompletedHandlers.Add(handler);
+                Transaction.Current.TransactionCompleted += (sender, args) => OnCommandTransactionComplete(args);
             }
         }
         
