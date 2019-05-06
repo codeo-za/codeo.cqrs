@@ -10,8 +10,15 @@ namespace Codeo.CQRS
 {
     public abstract class BaseSqlExecutor
     {
-        internal static Func<IDbConnection> ConnectionFactory =
-            () => throw new ConfigurationException("ConnectionFactory is not defined");
+        internal static IDbConnectionFactory ConnectionFactory { get; set; }
+
+        internal static void AddExceptionHandler<T>(
+            IExceptionHandler<T> handler) where T: Exception
+        {
+            var exType = typeof(T);
+            ExceptionHandlers[exType] = (op, ex) => handler.Handle(op, ex as T);
+        }
+
         internal static Dictionary<Type, Action<Operation, Exception>> ExceptionHandlers
             = new Dictionary<Type, Action<Operation, Exception>>();
         public ICache Cache { get; set; } = new NoCache();
@@ -41,7 +48,6 @@ namespace Codeo.CQRS
                 sql,
                 parameters);
         }
-
 
         /// <summary>
         /// Selects multiple results from a horizontally joined query result. (2 Types)
@@ -73,7 +79,8 @@ namespace Codeo.CQRS
 
         private IDbConnection CreateOpenConnection()
         {
-            var result = ConnectionFactory();
+            var result = ConnectionFactory?.Create() 
+                         ?? throw new InvalidOperationException("Please configure a ConnectionFactory to provide new instances of IDbConnection per call to Create()");;
             if (result.State != ConnectionState.Open)
             {
                 result.Open();

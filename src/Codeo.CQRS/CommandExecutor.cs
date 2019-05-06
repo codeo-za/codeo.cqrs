@@ -29,15 +29,15 @@ namespace Codeo.CQRS
 
     public class CommandExecutor : ICommandExecutor
     {
-        private IQueryExecutor queryExecutor { get; set; }
-        private ICache cache { get; set; }
+        private readonly IQueryExecutor _queryExecutor;
+        private readonly ICache _cache;
         
         public CommandExecutor(
             IQueryExecutor queryExecutor,
             ICache cache)
         {
-            this.queryExecutor = queryExecutor;
-            this.cache = cache;
+            _queryExecutor = queryExecutor;
+            _cache = cache;
         }
         
         /// <summary>
@@ -51,9 +51,9 @@ namespace Codeo.CQRS
                 throw new ArgumentNullException(nameof(command));
             }
 
-            command.QueryExecutor = command.QueryExecutor ?? this.queryExecutor;
+            command.QueryExecutor = command.QueryExecutor ?? _queryExecutor;
             command.CommandExecutor = command.CommandExecutor ?? this;
-            command.Cache = command.Cache ?? cache;
+            command.Cache = command.Cache ?? _cache;
             command.Validate();
             command.Execute();
         }

@@ -15,7 +15,7 @@ namespace Codeo.CQRS.Tests
         {
             _db = new TempDBMySql();
             Fluently.Configure()
-                    .WithConnectionProvider(() => _db.CreateConnection())
+                    .WithConnectionFactory(new TempDbConnectionFactory(_db))
                     .WithEntitiesFrom(typeof(TestQuery).Assembly);
             CreateBasicSchemaWith(_db.CreateConnection());
         }
