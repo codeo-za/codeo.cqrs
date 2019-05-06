@@ -10,8 +10,11 @@
     <PackageReference Include="NExpect" Version="1.0.136" />
     <PackageReference Include="NUnit" Version="3.11.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.13.0" />
-    <PackageReference Include="PeanutButter.RandomGenerators" Version="1.2.260" />
-    <PackageReference Include="PeanutButter.TempDb.MySql" Version="1.2.260" />
+    <PackageReference Include="PeanutButter.INI" Version="1.2.274" />
+    <PackageReference Include="PeanutButter.RandomGenerators" Version="1.2.274" />
+    <PackageReference Include="PeanutButter.TempDb" Version="1.2.274" />
+    <PackageReference Include="PeanutButter.TempDb.MySql" Version="1.2.274" />
+    <PackageReference Include="PeanutButter.Utils" Version="1.2.274" />
   </ItemGroup>
 
   <ItemGroup>
