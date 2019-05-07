@@ -2,13 +2,13 @@
 <package>
   <metadata>
     <id>Codeo.CQRS</id>
-    <version>1.0.12</version>
+    <version>1.0.13</version>
     <authors>Codeo</authors>
     <owners>Codeo</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Database-engine-agnostic implementation of the Command Query Responsibility Separation pattern</description>
-    <releaseNotes>&#xD;&#xD;
-        Initial release as a package&#xD;&#xD;
+    <releaseNotes>&#xD;&#xD;&#xD;
+        Initial release as a package&#xD;&#xD;&#xD;
     </releaseNotes>
     <copyright>Copyright 2019</copyright>
     <tags>SPAR API single sign-on</tags>
