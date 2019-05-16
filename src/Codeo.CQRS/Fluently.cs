@@ -1,8 +1,6 @@
 using System;
-using System.Data;
 using System.Linq;
 using System.Reflection;
-using Codeo.CQRS.Exceptions;
 using Dapper;
 
 namespace Codeo.CQRS
@@ -20,36 +18,26 @@ namespace Codeo.CQRS
             {
             }
 
-            public Configuration WithConnectionProvider(Func<IDbConnection> factory)
+            public Configuration WithExceptionHandler<TException>(
+                IExceptionHandler<TException> handler) 
+                where TException: Exception
             {
-                BaseSqlExecutor.ConnectionFactory = factory;
-                return this;
-            }
-
-            public Configuration WithExceptionHandler<TException>(Action<Operation, Exception> handler)
-                where TException : Exception
-            {
-                BaseSqlExecutor.ExceptionHandlers[typeof(TException)] = handler;
-                return this;
-            }
-
-            public Configuration WithCache(ICache cache)
-            {
-                QueryExecutor.Cache = cache;
-                CommandExecutor.Cache = cache;
-                return this;
-            }
-
-            public Configuration WithQueryExecutorFactory(Func<IQueryExecutor> factory)
-            {
-                CommandExecutor.QueryExecutorFactory = factory;
+                BaseSqlExecutor.AddExceptionHandler(handler);
                 return this;
             }
 
             public Configuration WithEntitiesFrom(Assembly assembly)
             {
                 var entityType = typeof(IEntity);
-                return WithEntitiesFrom(assembly, x => entityType.IsAssignableFrom(x) && x != entityType);
+                return WithEntitiesFrom(
+                    assembly, 
+                    x => entityType.IsAssignableFrom(x) && x != entityType);
+            }
+
+            public Configuration WithConnectionFactory(IDbConnectionFactory connectionFactory)
+            {
+                BaseSqlExecutor.ConnectionFactory = connectionFactory;
+                return this;
             }
 
             public Configuration WithEntitiesFrom(Assembly assembly, Func<Type, bool> discriminator)
@@ -69,17 +57,18 @@ namespace Codeo.CQRS
             }
 
             private static readonly object MapLock = new object();
+
             public static void MapEntityType(Type type)
             {
                 lock (MapLock)
                 {
-                    if (BaseSqlExecutor.KnownMappedTypes.Contains(type))
+                    if (BaseSqlExecutor.KnownMappedTypes.ContainsKey(type))
                     {
                         // may have been added between the start of this call and now
                         return;
                     }
                     SqlMapper.SetTypeMap(type, Map(type));
-                    BaseSqlExecutor.KnownMappedTypes.Add(type);
+                    BaseSqlExecutor.KnownMappedTypes.TryAdd(type, true);
                 }
             }
 

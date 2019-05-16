@@ -19,7 +19,7 @@ namespace Codeo.CQRS.Tests
         public void ShouldBeAbleToReadSingleResult()
         {
             // Arrange
-            var queryExecutor = new QueryExecutor();
+            var queryExecutor = new QueryExecutor(new NoCache());
             // Act
             var result = queryExecutor.Execute(new FindCarlSagan());
             // Assert
@@ -31,8 +31,8 @@ namespace Codeo.CQRS.Tests
         public void ShouldBeAbleToInsertAndReadASingleResult()
         {
             // Arrange
-            var queryExecutor = new QueryExecutor();
-            var commandExecutor = new CommandExecutor();
+            var queryExecutor = new QueryExecutor(new NoCache());
+            var commandExecutor = new CommandExecutor(queryExecutor, new NoCache());
             var name = GetRandomString(10, 20);
             commandExecutor.Execute(new CreatePerson(name));
             // Act
@@ -49,7 +49,7 @@ namespace Codeo.CQRS.Tests
             var name2 = GetRandomString(10, 20);
             CreatePerson(name1);
             CreatePerson(name2);
-            var queryExecutor = new QueryExecutor();
+            var queryExecutor = new QueryExecutor(new NoCache());
             // Act
             var results = queryExecutor.Execute(
                 new FindAllPeople()
@@ -68,7 +68,11 @@ namespace Codeo.CQRS.Tests
             {
                 // Arrange
                 var name = GetRandomString(10, 20);
-                var executor = new CommandExecutor();
+                var cache = new NoCache();
+                var executor = new CommandExecutor(
+                    new QueryExecutor(cache),
+                    cache
+                    );
                 // Act
                 Expect(() => executor.Execute(new CreatePeople(name)))
                     .To.Throw<TransactionScopeRequired>();
@@ -80,7 +84,11 @@ namespace Codeo.CQRS.Tests
             {
                 // Arrange
                 var names = GetRandomArray<string>(5);
-                var executor = new CommandExecutor();
+                var cache = new NoCache();
+                var executor = new CommandExecutor(
+                    new QueryExecutor(cache),
+                    cache
+                );
                 var result = new List<int>();
                 // Act
                 using (var scope = TransactionScopes.ReadCommitted(TransactionScopeOption.RequiresNew))
@@ -96,7 +104,7 @@ namespace Codeo.CQRS.Tests
                 // Assert
                 Expect(result).Not.To.Be.Empty();
                 Expect(result).To.Contain.Exactly(names.Length).Items();
-                var queryExecutor = new QueryExecutor();
+                var queryExecutor = new QueryExecutor(cache);
                 result.ForEach(id =>
                 {
                     var inDb = queryExecutor.Execute(new FindPersonById(id));
@@ -109,7 +117,7 @@ namespace Codeo.CQRS.Tests
         public void ShouldBeAbleToReadSingleResultOfNonEntity()
         {
             // Arrange
-            var queryExecutor = new QueryExecutor();
+            var queryExecutor = new QueryExecutor(new NoCache());
             // Act
             var result = queryExecutor.Execute(new FindCarlSaganAlike());
             // Assert
@@ -122,7 +130,7 @@ namespace Codeo.CQRS.Tests
         public void ShouldBeAbleToReadManyResultsOfNonEntity()
         {
             // Arrange
-            var queryExecutor = new QueryExecutor();
+            var queryExecutor = new QueryExecutor(new NoCache());
             var query = new FindCarlSaganAlikes();
             // Act
             var results = queryExecutor.Execute(query);
@@ -137,8 +145,12 @@ namespace Codeo.CQRS.Tests
 
         private void CreatePerson(string name)
         {
-            var commandExecutor = new CommandExecutor();
-            commandExecutor.Execute(
+            var cache = new NoCache();
+            var executor = new CommandExecutor(
+                new QueryExecutor(cache),
+                cache
+            );
+            executor.Execute(
                 new CreatePerson(name)
             );
         }
