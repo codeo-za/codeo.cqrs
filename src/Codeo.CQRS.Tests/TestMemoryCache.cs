@@ -642,22 +642,22 @@ namespace Codeo.CQRS.Tests
                                         throw new InvalidOperationException();
                                 }
                             });
-                        var cacheTime = TimeSpan.FromSeconds(1);
+                        var expires = DateTime.Now + TimeSpan.FromSeconds(1);
                         // Act
                         var result1 = sut.GetOrSet(
                             key,
                             fetcher.Fetch<int>,
-                            cacheTime
+                            expires
                         );
                         var result2 = sut.GetOrSet(key,
                             fetcher.Fetch<int>,
-                            cacheTime
+                            expires
                         );
-                        Thread.Sleep(1000);
+                        Thread.Sleep(1100);
                         var result3 = sut.GetOrSet(
                             key,
                             fetcher.Fetch<int>,
-                            cacheTime
+                            expires
                         );
                         
                         // Assert
@@ -677,6 +677,30 @@ namespace Codeo.CQRS.Tests
             private ICache Create()
             {
                 return new MemoryCache();
+            }
+
+            [SetUp]
+            public void Setup()
+            {
+                ClearSystemRuntimeCachingMemoryCache();
+            }
+
+            [TearDown]
+            public void Teardown()
+            {
+                ClearSystemRuntimeCachingMemoryCache();
+            }
+
+            private static void ClearSystemRuntimeCachingMemoryCache()
+            {
+                var cache = System.Runtime.Caching.MemoryCache.Default;
+                var keys = cache
+                    .Select(kvp => kvp.Key)
+                    .ToArray();
+                foreach (var key in keys)
+                {
+                    cache.Remove(key);
+                }
             }
         }
 

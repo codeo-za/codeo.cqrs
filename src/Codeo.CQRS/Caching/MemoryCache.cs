@@ -114,7 +114,8 @@ namespace Codeo.CQRS.Caching
             return FetchOrGenerate(
                 key,
                 generator,
-                DefaultCachePolicy);
+                () => DefaultCachePolicy
+            );
         }
 
         private T SetInternal<T>(
@@ -134,7 +135,7 @@ namespace Codeo.CQRS.Caching
             return FetchOrGenerate(
                 key,
                 generator,
-                SlidingExpirationFor(slidingExpiration)
+                () => SlidingExpirationFor(slidingExpiration)
             );
         }
 
@@ -146,14 +147,14 @@ namespace Codeo.CQRS.Caching
             return FetchOrGenerate(
                 key,
                 generator,
-                AbsoluteExpirationFor(absoluteExpiration)
+                () => AbsoluteExpirationFor(absoluteExpiration)
             );
         }
 
         private T FetchOrGenerate<T>(
             string key,
             Func<T> generator,
-            CacheItemPolicy cacheItemPolicy)
+            Func<CacheItemPolicy> cacheItemPolicy)
         {
             if (TryGet<T>(key, out var result1))
             {
@@ -168,7 +169,7 @@ namespace Codeo.CQRS.Caching
                 }
 
                 var toCache = generator();
-                SetInternal(key, toCache, cacheItemPolicy);
+                SetInternal(key, toCache, cacheItemPolicy());
                 return toCache;
             }
         }

@@ -4,7 +4,7 @@ const
     lsR = requireModule("ls-r"),
     gulp = requireModule("gulp-with-help");
 
-gulp.task("test-dotnet", "Tests *.Tests.csproj with 'dotnet test'", ["build"], () => {
+gulp.task("test-dotnet-core", "Tests *.Tests.csproj with 'dotnet test'", ["build"], () => {
     return new Promise(async (resolve, reject) => {
         var projects = lsR(".").filter(p => {
             const filename = path.basename(p);

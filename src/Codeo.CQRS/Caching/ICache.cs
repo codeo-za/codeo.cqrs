@@ -37,7 +37,10 @@ namespace Codeo.CQRS.Caching
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
-        /// <param name="slidingExpiration">The amount of time the item should remain in the cache before getting removed.  If the item is accessed, this time will reset to 0.</param>
+        /// <param name="slidingExpiration">
+        /// The amount of time the item should remain in the cache before getting removed.
+        /// If the item is accessed, this time will reset to 0.
+        /// </param>
         void Set(string key, object value, TimeSpan slidingExpiration);
 
         /// <summary>
