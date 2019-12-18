@@ -6,8 +6,8 @@ const
 gulp.task("release", ["build-for-release"], async (done) => {
   const onPackMasterBranch = await isPackMaster();
   return onPackMasterBranch
-    ? runSequencePromise("test", "pack", "commit-release", "tag", "push-tags")
-    : runSequencePromise("test", "pack");
+    ? runSequencePromise("cover-dotnet", "pack", "commit-release", "tag", "push-tags")
+    : runSequencePromise("cover-dotnet", "pack");
 
   function runSequencePromise() {
       var targets = Array.from(arguments);
