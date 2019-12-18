@@ -5,6 +5,7 @@ using System.Linq;
 using Codeo.CQRS.Exceptions;
 using Dapper;
 using System.Collections.Concurrent;
+using Codeo.CQRS.Caching;
 
 namespace Codeo.CQRS
 {

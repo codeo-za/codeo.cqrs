@@ -1,6 +1,6 @@
 using System;
 
-namespace Codeo.CQRS.Tests
+namespace Codeo.CQRS.Tests.Models
 {
     public class Person : IEntity
     {

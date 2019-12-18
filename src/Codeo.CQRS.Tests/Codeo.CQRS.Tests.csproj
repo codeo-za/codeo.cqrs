@@ -7,7 +7,9 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.0.1" />
     <PackageReference Include="MySql.Data" Version="8.0.15" />
-    <PackageReference Include="NExpect" Version="1.0.136" />
+    <PackageReference Include="NExpect" Version="1.0.162" />
+    <PackageReference Include="NExpect.Matchers.NSubstitute" Version="1.0.162" />
+    <PackageReference Include="NSubstitute" Version="4.2.1" />
     <PackageReference Include="NUnit" Version="3.11.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.13.0" />
     <PackageReference Include="PeanutButter.INI" Version="1.2.274" />
@@ -15,6 +17,7 @@
     <PackageReference Include="PeanutButter.TempDb" Version="1.2.274" />
     <PackageReference Include="PeanutButter.TempDb.MySql" Version="1.2.274" />
     <PackageReference Include="PeanutButter.Utils" Version="1.2.274" />
+    <PackageReference Include="System.Runtime.Caching" Version="4.7.0" />
   </ItemGroup>
 
   <ItemGroup>

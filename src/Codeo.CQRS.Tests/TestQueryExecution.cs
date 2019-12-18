@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Transactions;
+using Codeo.CQRS.Caching;
 using Codeo.CQRS.Exceptions;
 using Codeo.CQRS.Tests.Commands;
 using Codeo.CQRS.Tests.Queries;
@@ -13,7 +14,7 @@ using static NExpect.Expectations;
 namespace Codeo.CQRS.Tests
 {
     [TestFixture]
-    public class TestQuery
+    public class TestQueryExecution: TestFixtureRequiringData
     {
         [Test]
         public void ShouldBeAbleToReadSingleResult()
@@ -61,7 +62,7 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class WhenTransactionIsRequired: TestQuery
+        public class WhenTransactionIsRequired: TestQueryExecution
         {
             [Test]
             public void ShouldThrowIfNoneAvailable()

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Codeo.CQRS.Caching;
 
 namespace Codeo.CQRS
 {

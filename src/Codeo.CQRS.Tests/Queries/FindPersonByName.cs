@@ -1,3 +1,5 @@
+using Codeo.CQRS.Tests.Models;
+
 namespace Codeo.CQRS.Tests.Queries
 {
     public class FindPersonByName : Query<Person>

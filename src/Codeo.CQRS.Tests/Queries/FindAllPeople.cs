@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Codeo.CQRS.Tests.Models;
 
 namespace Codeo.CQRS.Tests.Queries
 {

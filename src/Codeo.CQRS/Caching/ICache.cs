@@ -1,6 +1,6 @@
 using System;
 
-namespace Codeo.CQRS
+namespace Codeo.CQRS.Caching
 {
     /// <summary>
     /// Represents a class that can be used to store cached information.

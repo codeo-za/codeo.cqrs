@@ -6,10 +6,10 @@ using static NExpect.Expectations;
 namespace Codeo.CQRS.Tests
 {
     [TestFixture]
-    public class CommandTests
+    public class TestCommandExecution: TestFixtureRequiringData
     {
         [TestFixture]
-        public class TransactionCompletedHandler : CommandTests
+        public class TransactionCompletedHandler : TestCommandExecution
         {
             [Test]
             public void WhenNoTransactionExists_AndTransactionEventHandlerUsed_ShouldThrow()
