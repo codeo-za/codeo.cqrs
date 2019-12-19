@@ -15,11 +15,22 @@ namespace Codeo.CQRS.Caching
         internal ObjectCache Cache => _actual;
         private readonly ObjectCache _actual;
 
+        /// <summary>
+        /// Constructs a MemoryCache backed by the
+        /// System.Runtime.Caching.MemoryCache.Default
+        /// </summary>
         public MemoryCache() : 
             this(System.Runtime.Caching.MemoryCache.Default)
         {
         }
 
+        /// <summary>
+        /// Construct a memory cache with provided settings
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="cacheSizeInMb"></param>
+        /// <param name="physicalMemoryLimitPercentage"></param>
+        /// <param name="pollingInterval"></param>
         public MemoryCache(
             string name,
             long cacheSizeInMb,
@@ -34,9 +45,29 @@ namespace Codeo.CQRS.Caching
         {
         }
 
+        /// <summary>
+        /// Construct a memory cache backed by a custom implementation of ObjectCache
+        /// </summary>
+        /// <param name="cache"></param>
         public MemoryCache(ObjectCache cache)
         {
             _actual = cache;
+        }
+
+        /// <summary>
+        /// Construct a named memory cache, perhaps from app settings
+        /// Useful settings are:
+        /// - CacheMemoryLimitMegabytes (integer)
+        /// - PhysicalMemoryLimitPercentage (integer, 0 - 100)
+        /// - PollingInterval (should be in the form HH:MM:SS)
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="settings"></param>
+        private MemoryCache(
+            string name, 
+            NameValueCollection settings)
+        {
+            _actual = new System.Runtime.Caching.MemoryCache(name, settings);
         }
 
         private static NameValueCollection CreateSettingsFrom(
@@ -50,13 +81,6 @@ namespace Codeo.CQRS.Caching
                 { "PhysicalMemoryLimitPercentage", physicalMemoryLimitPercentage.ToString() },
                 { "PollingInterval", pollingInterval.ToString() }
             };
-        }
-
-        private MemoryCache(
-            string name, 
-            NameValueCollection settings)
-        {
-            _actual = new System.Runtime.Caching.MemoryCache(name, settings);
         }
 
         public bool ContainsKey(string key)
