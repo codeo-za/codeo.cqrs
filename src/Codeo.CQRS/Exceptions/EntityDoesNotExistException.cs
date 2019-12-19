@@ -81,7 +81,6 @@ namespace Codeo.CQRS.Exceptions
             "select"
         };
 
-#if DEBUG
         private static string Dump(object predicates)
         {
             if (predicates is string str)
@@ -102,6 +101,5 @@ namespace Codeo.CQRS.Exceptions
                 Formatting = Formatting.Indented,
                 PreserveReferencesHandling = PreserveReferencesHandling.All
             };
-#endif
     }
 }
