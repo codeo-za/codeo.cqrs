@@ -270,6 +270,45 @@ namespace Codeo.CQRS.Tests
         public class TestCachingByAttribute : TestQueryExecution
         {
             [TestFixture]
+            public class WhenNotDecorated : TestCachingByAttribute
+            {
+                [Test]
+                public void ShouldNotCache()
+                {
+                    // Arrange
+                    var name1 = GetRandomString();
+                    var name2 = GetAnother(name1);
+                    var name3 = GetAnother<string>(new[] { name1, name2 });
+                    var id = CreatePerson(name1);
+                    // Act
+                    var first = QueryExecutor.Execute(
+                        new FindPersonByIdUncached(
+                            id
+                        )
+                    );
+                    UpdatePersonName(id, name2);
+                    var second = QueryExecutor.Execute(
+                        new FindPersonByIdUncached(
+                            id
+                        )
+                    );
+                    UpdatePersonName(id, name3);
+                    var third = QueryExecutor.Execute(
+                        new FindPersonByIdUncached(
+                            id
+                        )
+                    );
+                    // Assert
+                    Expect(first.Name)
+                        .To.Equal(name1);
+                    Expect(second.Name)
+                        .To.Equal(name2);
+                    Expect(third.Name)
+                        .To.Equal(name3);
+                }
+            }
+
+            [TestFixture]
             public class OnSelectQueries : TestCachingByAttribute
             {
                 [Test]
@@ -350,7 +389,7 @@ namespace Codeo.CQRS.Tests
             public class ShouldNeverUseOnTransformQueries : TestCachingByAttribute
             {
                 [TestFixture]
-                public class WhenIsDelete: ShouldNeverUseOnTransformQueries
+                public class WhenIsDelete : ShouldNeverUseOnTransformQueries
                 {
                     [Test]
                     public void ShouldNotUse()
@@ -408,7 +447,7 @@ namespace Codeo.CQRS.Tests
                 }
 
                 [TestFixture]
-                public class WhenIsInsert: ShouldNeverUseOnTransformQueries
+                public class WhenIsInsert : ShouldNeverUseOnTransformQueries
                 {
                     [Test]
                     public void ShouldNotUse()
@@ -459,7 +498,7 @@ namespace Codeo.CQRS.Tests
                 }
 
                 [TestFixture]
-                public class WhenIsUpdate: ShouldNeverUseOnTransformQueries
+                public class WhenIsUpdate : ShouldNeverUseOnTransformQueries
                 {
                     [Test]
                     public void ShouldNotUse()
@@ -506,7 +545,7 @@ namespace Codeo.CQRS.Tests
                             .To.Equal(name1);
                         Expect(result1)
                             .To.Equal(name1);
-                    
+
                         var result2 = CommandExecutor.Execute(
                             new UpdatePersonNameWithResult(
                                 id,
