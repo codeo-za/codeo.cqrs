@@ -1,36 +1,85 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+
+// ReSharper disable UnusedAutoPropertyAccessor.Global
+// ReSharper disable MemberCanBePrivate.Global
 
 namespace Codeo.CQRS.Exceptions
 {
     public class EntityDoesNotExistException : Exception
     {
-#if DEBUG
-        public const bool DEBUG_ENABLED = true;
-#else
-        public const bool DEBUG_ENABLED = false;
-#endif
-        public string EntityName { get; set; }
-        public object Predicates { get; set; }
+        public static bool DEBUG_ENABLED = false;
+        public string EntityName { get; }
+        public object Predicates { get; }
 
-        public EntityDoesNotExistException(string entityName, object predicates)
-            : base(CreateMessageFor(entityName, predicates))
+        public EntityDoesNotExistException(string sql)
+            : this(sql, null, null)
         {
-            EntityName = entityName;
+        }
+
+        public EntityDoesNotExistException(
+            string entityNameOrSql,
+            object predicates
+        ) : this(entityNameOrSql, predicates, null)
+        {
+        }
+
+        public EntityDoesNotExistException(
+            string entityNameOrSql,
+            object predicates,
+            Exception innerException
+        ) : base(CreateMessageFor(entityNameOrSql, predicates), innerException)
+        {
+            EntityName = entityNameOrSql;
             Predicates = predicates;
         }
 
-        public static string CreateMessageFor(
-            string entityName,
+        private static string CreateMessageFor(
+            string entityNameOrSql,
             object predicates
         )
         {
-#if DEBUG
-            return $"{entityName} record does not exist for predicate:\n{Dump(predicates)}";
-#else
-            return $"{entityName} record does not exist for predicate";
-#endif
+            return DEBUG_ENABLED
+                ? CreateDiagnosticMessageFor(entityNameOrSql, predicates)
+                : CreateSimpleMessageFor(entityNameOrSql);
         }
+
+        private static string CreateSimpleMessageFor(string entityNameOrSql)
+        {
+            return LooksLikeSql(entityNameOrSql)
+                ? "No matching records for query"
+                : $"{entityNameOrSql} record does not exist for predicate";
+        }
+
+        private static string CreateDiagnosticMessageFor(string entityNameOrSql, object predicates)
+        {
+            return LooksLikeSql(entityNameOrSql)
+                ? $"No records found for query:\n${entityNameOrSql}\nwith predicate:\n{Dump(predicates)}"
+                : $"{entityNameOrSql} record does not exist for predicate:\n{Dump(predicates)}";
+        }
+
+
+        private static bool LooksLikeSql(string str)
+        {
+            return WhiteSpaceRegex.Matches(str)
+                .Cast<Match>()
+                .Any(w => SqlKeyWords.Contains(w.Value));
+        }
+
+        private static readonly Regex WhiteSpaceRegex = new Regex("[^\\s]");
+
+        private static readonly HashSet<string> SqlKeyWords = new HashSet<string>(
+            StringComparer.OrdinalIgnoreCase
+        )
+        {
+            "insert",
+            "update",
+            "delete",
+            "select"
+        };
 
 #if DEBUG
         private static string Dump(object predicates)

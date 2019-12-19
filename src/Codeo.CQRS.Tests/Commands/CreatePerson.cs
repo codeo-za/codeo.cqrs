@@ -2,39 +2,47 @@ using System;
 
 namespace Codeo.CQRS.Tests.Commands
 {
-    public class CreatePerson : Command<int>
+    public class CreatePerson : InsertCommand<int>
     {
-        public string Name { get; }
-        public bool Enabled { get; }
+        private const string sql = @"
+            insert into people (name, enabled, created)
+            values (@name, @enabled, @created);
+            select last_insert_id() as id;
+            ";
 
-        public CreatePerson(
-            string name,
-            bool enabled = true)
+        public CreatePerson(string name) : this(name, true)
         {
-            Name = name;
-            Enabled = enabled;
         }
 
-        public override void Execute()
+        public CreatePerson(string name, bool enabled)
+            : base(sql, new
+            {
+                name, 
+                enabled,
+                created = DateTime.Now
+            })
         {
-            Result = InsertGetFirst<int>(@"
-insert into people (
-                    name,
-                    enabled,
-                    created
-                    ) values 
-                             (
-                              @name,
-                              @enabled,
-                              @created
-                              ); 
-select last_insert_id();",
-                                         new
-                                         {
-                                             Name,
-                                             Enabled,
-                                             Created = DateTime.Now
-                                         });
+        }
+    }
+    public class CreatePersonNoResult : InsertCommand
+    {
+        private const string sql = @"
+            insert into people (name, enabled, created)
+            values (@name, @enabled, @created);
+            ";
+
+        public CreatePersonNoResult(string name) : this(name, true)
+        {
+        }
+
+        public CreatePersonNoResult(string name, bool enabled)
+            : base(sql, new
+            {
+                name, 
+                enabled,
+                created = DateTime.Now
+            })
+        {
         }
     }
 }

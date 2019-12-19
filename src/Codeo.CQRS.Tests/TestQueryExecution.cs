@@ -6,6 +6,7 @@ using System.Transactions;
 using Codeo.CQRS.Caching;
 using Codeo.CQRS.Exceptions;
 using Codeo.CQRS.Tests.Commands;
+using Codeo.CQRS.Tests.Models;
 using Codeo.CQRS.Tests.Queries;
 using NExpect;
 using NUnit.Framework;
@@ -36,11 +37,71 @@ namespace Codeo.CQRS.Tests
             var queryExecutor = new QueryExecutor(new NoCache());
             var commandExecutor = new CommandExecutor(queryExecutor, new NoCache());
             var name = GetRandomString(10, 20);
-            commandExecutor.Execute(new CreatePerson(name));
+            var id = commandExecutor.Execute(new CreatePerson(name));
+            // Act
+            var result1 = queryExecutor.Execute(new FindPersonByName(name));
+            var result2 = queryExecutor.Execute(new FindPersonById(id));
+            // Assert
+            Expect(result1).To.Intersection.Equal(new { Id = id, Name = name });
+            Expect(result2).To.Intersection.Equal(new { Id = id, Name = name });
+        }
+
+        [Test]
+        public void ShouldBeAbleToInsertWithNoResult()
+        {
+            // Arrange
+            var queryExecutor = new QueryExecutor(new NoCache());
+            var commandExecutor = new CommandExecutor(queryExecutor, new NoCache());
+            var name = GetRandomString(10, 20);
+            commandExecutor.Execute(new CreatePersonNoResult(name));
             // Act
             var result = queryExecutor.Execute(new FindPersonByName(name));
             // Assert
             Expect(result).To.Intersection.Equal(new { Name = name });
+        }
+
+        [TestFixture]
+        public class SingleResultFailures : TestQueryExecution
+        {
+            [TestFixture]
+            public class WhenDebugMessagesEnabled : SingleResultFailures
+            {
+                [Test]
+                public void ShouldGiveDetailedMessage()
+                {
+                    // Arrange
+                    Fluently.Configure().WithDebugMessagesEnabled();
+                    var queryExecutor = new QueryExecutor(new NoCache());
+                    // Act
+                    Expect(() =>
+                            queryExecutor.Execute(new FindPersonById(-1))
+                        ).To.Throw<EntityDoesNotExistException>()
+                        .With.Message.Containing(nameof(Person))
+                        .And.Containing("does not exist for predicate")
+                        .And.Containing("-1");
+                    // Assert
+                }
+            }
+
+            [TestFixture]
+            public class WhenDebugMessagesDisabled : SingleResultFailures
+            {
+                [Test]
+                public void ShouldGiveGenericMessage()
+                {
+                    // Arrange
+                    Fluently.Configure().WIthDebugMessagesDisabled();
+                    var queryExecutor = new QueryExecutor(new NoCache());
+                    // Act
+                    Expect(() =>
+                            queryExecutor.Execute(new FindPersonById(-1))
+                        ).To.Throw<EntityDoesNotExistException>()
+                        .With.Message.Containing(nameof(Person))
+                        .And.Containing("does not exist for predicate")
+                        .And.Not.Containing("-1");
+                    // Assert
+                }
+            }
         }
 
         [Test]
@@ -93,7 +154,7 @@ namespace Codeo.CQRS.Tests
                     cache
                 );
                 var result = new List<int>();
-                
+
                 Expect(TimeSpan.Zero.Ticks)
                     .To.Equal(0, () => $"WTF: expected TimeSpan.Zero to be zero, but it's {TimeSpan.Zero}");
                 // Act
@@ -151,15 +212,115 @@ namespace Codeo.CQRS.Tests
             Expect(result.DateOfBirth).To.Equal(new DateTime(1934, 11, 9, 0, 0, 0, DateTimeKind.Utc));
         }
 
+        [TestFixture]
+        public class TestGenericUpdateCommand : TestQueryExecution
+        {
+            public class UpdatePersonName : UpdateCommand
+            {
+                public UpdatePersonName(int id, string newName)
+                    : base(
+                        "update people set name = @newName where id = @id;",
+                        new { id, newName }
+                    )
+                {
+                }
+            }
 
-        private void CreatePerson(string name)
+            [Test]
+            public void ShouldUpdate()
+            {
+                // Arrange
+                var oldName = GetRandomString(10, 20);
+                var id = CreatePerson(oldName);
+                var newName = GetAnother(oldName);
+                var sut = new UpdatePersonName(id, newName);
+                // Act
+                CommandExecutor.Execute(sut);
+                // Assert
+                var inDb = FindPersonById(id);
+                Expect(inDb.Name).To.Equal(newName);
+            }
+        }
+        [TestFixture]
+        public class TestGenericDeleteCommand : TestQueryExecution
+        {
+            public class DeletePerson : UpdateCommand
+            {
+                public DeletePerson(int id)
+                    : base(
+                        "delete from people where id = @id;",
+                        new { id }
+                    )
+                {
+                }
+            }
+
+            public class DeletePersonWithResult : UpdateCommand<int>
+            {
+                public DeletePersonWithResult(int id)
+                    : base(
+                        "delete from people where id = @id; select max(id) from people;",
+                        new { id }
+                    )
+                {
+                }
+            }
+
+            [Test]
+            public void ShouldDelete()
+            {
+                // Arrange
+                var oldName = GetRandomString(10, 20);
+                var id = CreatePerson(oldName);
+                var sut = new DeletePerson(id);
+                // Act
+                CommandExecutor.Execute(sut);
+                // Assert
+                var inDb = FindPersonById(id);
+                Expect(inDb).To.Be.Null();
+            }
+            
+            [Test]
+            public void ShouldDeleteAndReturnValue()
+            {
+                // Arrange
+                var oldName = GetRandomString(10, 20);
+                var id = CreatePerson(oldName);
+                var sut = new DeletePersonWithResult(id);
+                // Act
+                var result = CommandExecutor.Execute(sut);
+                // Assert
+                var inDb = FindPersonById(result);
+                Expect(inDb).Not.To.Be.Null();
+            }
+        }
+
+        private static ICache NoCache = new NoCache();
+        private static IQueryExecutor QueryExecutor = new QueryExecutor(NoCache);
+        private static ICommandExecutor CommandExecutor = new CommandExecutor(QueryExecutor, NoCache);
+
+        private Person FindPersonById(int id)
+        {
+            try
+            {
+                return QueryExecutor.Execute(
+                    new FindPersonById(id)
+                );
+            }
+            catch (EntityDoesNotExistException)
+            {
+                return null;
+            }
+        }
+
+        private int CreatePerson(string name)
         {
             var cache = new NoCache();
             var executor = new CommandExecutor(
                 new QueryExecutor(cache),
                 cache
             );
-            executor.Execute(
+            return executor.Execute(
                 new CreatePerson(name)
             );
         }

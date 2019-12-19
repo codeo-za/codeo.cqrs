@@ -14,8 +14,8 @@ namespace Codeo.CQRS.Tests.Queries
         public override void Execute()
         {
             Result = SelectFirst<Person>(
-                         "select * from people where id = @id;", new {Id})
-                     ?? throw new PersonNotFound(Id);
+                "select * from people where id = @id;", new { Id }
+            );
         }
     }
 }

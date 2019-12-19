@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using Codeo.CQRS.Exceptions;
 using Dapper;
 
 namespace Codeo.CQRS
@@ -37,6 +38,18 @@ namespace Codeo.CQRS
             public Configuration WithConnectionFactory(IDbConnectionFactory connectionFactory)
             {
                 BaseSqlExecutor.ConnectionFactory = connectionFactory;
+                return this;
+            }
+
+            public Configuration WithDebugMessagesEnabled()
+            {
+                EntityDoesNotExistException.DEBUG_ENABLED = true;
+                return this;
+            }
+
+            public Configuration WIthDebugMessagesDisabled()
+            {
+                EntityDoesNotExistException.DEBUG_ENABLED = false;
                 return this;
             }
 

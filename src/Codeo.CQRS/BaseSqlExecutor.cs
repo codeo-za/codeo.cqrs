@@ -7,6 +7,8 @@ using Dapper;
 using System.Collections.Concurrent;
 using Codeo.CQRS.Caching;
 
+// ReSharper disable MemberCanBeProtected.Global
+
 namespace Codeo.CQRS
 {
     public abstract class BaseSqlExecutor
@@ -14,40 +16,84 @@ namespace Codeo.CQRS
         internal static IDbConnectionFactory ConnectionFactory { get; set; }
 
         internal static void AddExceptionHandler<T>(
-            IExceptionHandler<T> handler) where T: Exception
+            IExceptionHandler<T> handler) where T : Exception
         {
             var exType = typeof(T);
             ExceptionHandlers[exType] = (op, ex) => handler.Handle(op, ex as T);
         }
 
-        internal static Dictionary<Type, Action<Operation, Exception>> ExceptionHandlers
+        private static readonly Dictionary<Type, Action<Operation, Exception>> ExceptionHandlers
             = new Dictionary<Type, Action<Operation, Exception>>();
+
         public ICache Cache { get; set; } = new NoCache();
 
-        internal static readonly ConcurrentDictionary<Type, bool> KnownMappedTypes 
+        internal static readonly ConcurrentDictionary<Type, bool> KnownMappedTypes
             = new ConcurrentDictionary<Type, bool>();
 
-        public IEnumerable<T> SelectMany<T>(string sql, object parameters = null)
+        /// <summary>
+        /// Selects zero or more items from the database
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public IEnumerable<T> SelectMany<T>(string sql)
+        {
+            return SelectMany<T>(sql, null);
+        }
+
+        /// <summary>
+        /// Selects zero or more items from the database
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public IEnumerable<T> SelectMany<T>(
+            string sql,
+            object parameters)
         {
             return QueryCollection<T>(Operation.Select, sql, parameters)
-                   ??
-                   // there are many usages of Query<T> where the result
-                   //    isn't checked, but is immediately chained into LINQ,
-                   //    which simply fails with a NullReferenceException. Better
-                   //    to catch it here.
-                   throw new InvalidOperationException(
-                       $"{GetType()}: QueryExecutor<T> where T is IEnumerable<> should return empty collection rather than null."
-                   );
+                ??
+                // there are many usages of Query<T> where the result
+                //    isn't checked, but is immediately chained into LINQ,
+                //    which simply fails with a NullReferenceException. Better
+                //    to catch it here.
+                throw new InvalidOperationException(
+                    $"{GetType()}: QueryExecutor<T> where T is IEnumerable<> should return empty collection rather than null."
+                );
+        }
+
+        /// <summary>
+        /// Selects the first matching item from the database
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public T SelectFirst<T>(
+            string sql)
+        {
+            return SelectFirst<T>(sql, null);
         }
 
         public T SelectFirst<T>(
             string sql,
-            object parameters = null)
+            object parameters)
         {
             return QueryFirst<T>(
                 Operation.Select,
                 sql,
                 parameters);
+        }
+
+        public IEnumerable<TReturn> SelectMulti<TFirst, TSecond, TReturn>(
+            string sql,
+            Func<TFirst, TSecond, TReturn> function)
+
+        {
+            return SelectMulti<TFirst, TSecond, TReturn>(
+                sql,
+                function,
+                null);
         }
 
         /// <summary>
@@ -60,10 +106,10 @@ namespace Codeo.CQRS
         /// <param name="function">The function on how to handle the returned results</param>
         /// <param name="parameters">The parameters.</param>
         /// <returns></returns>
-        public List<TReturn> SelectMulti<TFirst, TSecond, TReturn>(
+        public IEnumerable<TReturn> SelectMulti<TFirst, TSecond, TReturn>(
             string sql,
             Func<TFirst, TSecond, TReturn> function,
-            object parameters = null)
+            object parameters)
         {
             EnsureDapperKnowsAbout<TFirst>();
             EnsureDapperKnowsAbout<TSecond>();
@@ -80,13 +126,26 @@ namespace Codeo.CQRS
 
         private IDbConnection CreateOpenConnection()
         {
-            var result = ConnectionFactory?.Create() 
-                         ?? throw new InvalidOperationException("Please configure a ConnectionFactory to provide new instances of IDbConnection per call to Create()");;
+            var result = ConnectionFactory?.Create()
+                ?? throw new InvalidOperationException(
+                    "Please configure a ConnectionFactory to provide new instances of IDbConnection per call to Create()");
+            ;
             if (result.State != ConnectionState.Open)
             {
                 result.Open();
             }
+
             return result;
+        }
+
+        public IEnumerable<TReturn> SelectMulti<TFirst, TSecond, TThird, TReturn>(
+            string sql,
+            Func<TFirst, TSecond, TThird, TReturn> function)
+        {
+            return SelectMulti<TFirst, TSecond, TThird, TReturn>(
+                sql,
+                function,
+                null);
         }
 
         /// <summary>
@@ -103,8 +162,7 @@ namespace Codeo.CQRS
         public IEnumerable<TReturn> SelectMulti<TFirst, TSecond, TThird, TReturn>(
             string sql,
             Func<TFirst, TSecond, TThird, TReturn> function,
-            object parameters = null
-        )
+            object parameters)
         {
             EnsureDapperKnowsAbout<TFirst>();
             EnsureDapperKnowsAbout<TSecond>();
@@ -139,7 +197,7 @@ namespace Codeo.CQRS
                     throw;
                 }
 
-                return default(List<TReturnItem>);
+                return default;
             }
         }
 
@@ -149,6 +207,7 @@ namespace Codeo.CQRS
             {
                 return handler;
             }
+
             // TODO: try to find derived handler? probably travel all the way up to Exception -- would be useful
             // for the caller to be able to install a generic Exception handler
             return null;
@@ -161,6 +220,7 @@ namespace Codeo.CQRS
             {
                 return false;
             }
+
             handler.Invoke(operation, ex);
             return true;
         }
@@ -172,7 +232,10 @@ namespace Codeo.CQRS
         /// <param name="sql">The SQL query.</param>
         /// <param name="parameters">The parameters.</param>
         /// <param name="callback">The callback action on how to handle the results.</param>
-        public void SelectMulti(string sql, object parameters, Action<SqlMapper.GridReader> callback)
+        public void SelectMulti(
+            string sql,
+            object parameters,
+            Action<SqlMapper.GridReader> callback)
         {
             using (var connection = CreateOpenConnection())
             {
@@ -204,48 +267,109 @@ namespace Codeo.CQRS
             }
         }
 
-        public IEnumerable<T> UpdateGetList<T>(string sql, object parameters = null)
+        /// <summary>
+        /// Performs an update, returns a collection from the result
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public IEnumerable<T> UpdateGetList<T>(
+            string sql)
+        {
+            return UpdateGetList<T>(sql, null);
+        }
+
+        /// <summary>
+        /// Performs an update, returns a collection from the result
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public IEnumerable<T> UpdateGetList<T>(
+            string sql,
+            object parameters)
         {
             return QueryCollection<T>(Operation.Update, sql, parameters);
         }
 
-        public T UpdateGetFirst<T>(string sql, object parameters = null)
+        public T UpdateGetFirst<T>(string sql)
+        {
+            return UpdateGetFirst<T>(sql, null);
+        }
+
+        public T UpdateGetFirst<T>(string sql, object parameters)
         {
             return QueryFirst<T>(Operation.Update, sql, parameters);
         }
 
-        public IEnumerable<T> InsertGetList<T>(string sql, object parameters = null)
+        public IEnumerable<T> InsertGetList<T>(string sql)
+        {
+            return InsertGetList<T>(sql, null);
+        }
+
+        public IEnumerable<T> InsertGetList<T>(string sql, object parameters)
         {
             return QueryCollection<T>(Operation.Insert, sql, parameters);
         }
 
-        public T InsertGetFirst<T>(string sql, object parameters = null)
+        public T InsertGetFirst<T>(string sql)
+        {
+            return InsertGetFirst<T>(sql, null);
+        }
+
+        public T InsertGetFirst<T>(string sql, object parameters)
         {
             return QueryFirst<T>(Operation.Insert, sql, parameters);
         }
 
-        public IEnumerable<T> DeleteGetList<T>(string sql, object parameters = null)
+        public IEnumerable<T> DeleteGetList<T>(string sql)
+        {
+            return DeleteGetList<T>(sql, null);
+        }
+
+        public IEnumerable<T> DeleteGetList<T>(string sql, object parameters)
         {
             return QueryCollection<T>(Operation.Delete, sql, parameters);
         }
 
-        public T DeleteGetFirst<T>(string sql, object parameters = null)
+        public T DeleteGetFirst<T>(string sql)
+        {
+            return DeleteGetFirst<T>(sql, null);
+        }
+
+        public T DeleteGetFirst<T>(string sql, object parameters)
         {
             return QueryFirst<T>(Operation.Delete, sql, parameters);
         }
 
 
-        public int ExecuteUpdate(string sql, object parameters = null)
+        public int ExecuteUpdate(string sql)
+        {
+            return ExecuteUpdate(sql, null);
+        }
+
+        public int ExecuteUpdate(string sql, object parameters)
         {
             return Execute(Operation.Update, sql, parameters);
         }
 
-        public int ExecuteInsert(string sql, object parameters = null)
+        public int ExecuteInsert(string sql)
+        {
+            return ExecuteInsert(sql, null);
+        }
+
+        public int ExecuteInsert(string sql, object parameters)
         {
             return Execute(Operation.Insert, sql, parameters);
         }
 
-        public int ExecuteDelete(string sql, object parameters = null)
+        public int ExecuteDelete(string sql)
+        {
+            return ExecuteDelete(sql, null);
+        }
+
+        public int ExecuteDelete(string sql, object parameters)
         {
             return Execute(Operation.Delete, sql, parameters);
         }
@@ -258,7 +382,10 @@ namespace Codeo.CQRS
         /// <param name="sql"></param>
         /// <param name="parameters"></param>
         /// <returns></returns>
-        private IEnumerable<T> QueryCollection<T>(Operation operation, string sql, object parameters)
+        private IEnumerable<T> QueryCollection<T>(
+            Operation operation,
+            string sql,
+            object parameters)
         {
             EnsureDapperKnowsAbout<T>();
             using (var connection = CreateOpenConnection())
@@ -294,15 +421,10 @@ namespace Codeo.CQRS
             }
         }
 
-        /// <summary>
-        /// Executes a query returning a list
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="operation"></param>
-        /// <param name="sql"></param>
-        /// <param name="parameters"></param>
-        /// <returns></returns>
-        private T QueryFirst<T>(Operation operation, string sql, object parameters)
+        private T QueryFirst<T>(
+            Operation operation,
+            string sql,
+            object parameters)
         {
             EnsureDapperKnowsAbout<T>();
             using (var connection = CreateOpenConnection())
@@ -310,9 +432,37 @@ namespace Codeo.CQRS
                 return RunSingleResultQueryOnConnection(
                     operation,
                     connection,
-                    conn => conn.QueryFirst<T>(sql, parameters));
+                    conn =>
+                    {
+                        try
+                        {
+                            return conn.QueryFirst<T>(sql, parameters);
+                        }
+                        catch (Exception ex)
+                        {
+                            if (LooksLikeNoRowsReturned(ex))
+                            {
+                                throw new EntityDoesNotExistException(
+                                    typeof(T).Name,
+                                    parameters,
+                                    ex
+                                );
+                            }
+                            throw;
+                        }
+                    });
             }
         }
+
+        private bool LooksLikeNoRowsReturned(Exception ex)
+        {
+            return ex is InvalidOperationException &&
+                ex.StackTrace.Split('\n')
+                    .Any(s => s.Contains(EnumerableFirst));
+        }
+
+        private const string EnumerableFirst =
+            nameof(System.Linq.Enumerable) + "." + nameof(System.Linq.Enumerable.First);
 
         private T RunSingleResultQueryOnConnection<T>(
             Operation operation,
@@ -330,20 +480,14 @@ namespace Codeo.CQRS
                     throw;
                 }
 
-                return default(T);
+                return default;
             }
         }
 
-
-        /// <summary>
-        /// Executes a query returning a list
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="operation"></param>
-        /// <param name="sql"></param>
-        /// <param name="parameters"></param>
-        /// <returns></returns>
-        private int Execute(Operation operation, string sql, object parameters)
+        private int Execute(
+            Operation operation,
+            string sql,
+            object parameters)
         {
             using (var connection = CreateOpenConnection())
             {
@@ -381,15 +525,8 @@ namespace Codeo.CQRS
             {
                 return;
             }
-            Fluently.Configuration.MapEntityType(type);
-        }
-    }
 
-    public class ConfigurationException : Exception
-    {
-        public ConfigurationException(string message): base(message)
-        {
-            throw new NotImplementedException();
+            Fluently.Configuration.MapEntityType(type);
         }
     }
 }
