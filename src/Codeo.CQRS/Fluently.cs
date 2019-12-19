@@ -40,7 +40,9 @@ namespace Codeo.CQRS
                 return this;
             }
 
-            public Configuration WithEntitiesFrom(Assembly assembly, Func<Type, bool> discriminator)
+            public Configuration WithEntitiesFrom(
+                Assembly assembly, 
+                Func<Type, bool> discriminator)
             {
                 var entityTypes = assembly.GetTypes().Where(discriminator);
 

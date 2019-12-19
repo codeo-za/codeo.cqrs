@@ -63,6 +63,141 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
+        public class ConstructedWithExplicitSettings
+        {
+            [Test]
+            public void ShouldSetUpNamedCacheWithSettings()
+            {
+                // Arrange
+                var name = GetRandomString();
+                var cacheSizeInMb = GetRandomInt(5, 50);
+                var memoryLimit = GetRandomInt(50, 80);
+                var pollingInterval = TimeSpan.FromSeconds(GetRandomInt(10, 20));
+                var sut = new MemoryCache(
+                    name,
+                    cacheSizeInMb,
+                    memoryLimit,
+                    pollingInterval);
+                // Act
+                var actual = sut.Cache as System.Runtime.Caching.MemoryCache;
+                // Assert
+                Expect(actual).Not.To.Be.Null();
+                Expect(actual.Name).To.Equal(name);
+                Expect(actual.PollingInterval).To.Equal(pollingInterval);
+                Expect(actual.CacheMemoryLimit).To.Equal(cacheSizeInMb * 1024 * 1024);
+                Expect(actual.PhysicalMemoryLimit).To.Equal(memoryLimit);
+            }
+        }
+
+        [TestFixture]
+        public class Dispose: TestMemoryCache
+        {
+            [Test]
+            public void ShouldDisposeUnderlyingCache()
+            {
+                // Arrange
+                var actual = new DisposableCache();
+                var sut = Create(actual);
+                Expect(actual.Disposed)
+                    .To.Be.False();
+                // Act
+                sut.Dispose();
+                // Assert
+                Expect(actual.Disposed)
+                    .To.Be.True();
+            }
+
+            public class DisposableCache : ObjectCache, IDisposable
+            {
+                public void Dispose()
+                {
+                    Disposed = true;
+                }
+
+                public bool Disposed { get; private set; }
+
+                public override CacheEntryChangeMonitor CreateCacheEntryChangeMonitor(IEnumerable<string> keys, string regionName = null)
+                {
+                    throw new NotImplementedException();
+                }
+
+                protected override IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+                {
+                    throw new NotImplementedException();
+                }
+
+                public override bool Contains(string key, string regionName = null)
+                {
+                    throw new NotImplementedException();
+                }
+
+                public override object AddOrGetExisting(string key, object value, DateTimeOffset absoluteExpiration, string regionName = null)
+                {
+                    throw new NotImplementedException();
+                }
+
+                public override CacheItem AddOrGetExisting(CacheItem value, CacheItemPolicy policy)
+                {
+                    throw new NotImplementedException();
+                }
+
+                public override object AddOrGetExisting(string key, object value, CacheItemPolicy policy, string regionName = null)
+                {
+                    throw new NotImplementedException();
+                }
+
+                public override object Get(string key, string regionName = null)
+                {
+                    throw new NotImplementedException();
+                }
+
+                public override CacheItem GetCacheItem(string key, string regionName = null)
+                {
+                    throw new NotImplementedException();
+                }
+
+                public override void Set(string key, object value, DateTimeOffset absoluteExpiration, string regionName = null)
+                {
+                    throw new NotImplementedException();
+                }
+
+                public override void Set(CacheItem item, CacheItemPolicy policy)
+                {
+                    throw new NotImplementedException();
+                }
+
+                public override void Set(string key, object value, CacheItemPolicy policy, string regionName = null)
+                {
+                    throw new NotImplementedException();
+                }
+
+                public override IDictionary<string, object> GetValues(IEnumerable<string> keys, string regionName = null)
+                {
+                    throw new NotImplementedException();
+                }
+
+                public override object Remove(string key, string regionName = null)
+                {
+                    throw new NotImplementedException();
+                }
+
+                public override long GetCount(string regionName = null)
+                {
+                    throw new NotImplementedException();
+                }
+
+                public override DefaultCacheCapabilities DefaultCacheCapabilities { get; }
+                public override string Name { get; }
+
+                public override object this[string key]
+                {
+                    get => throw new NotImplementedException();
+                    set => throw new NotImplementedException();
+                }
+            }
+        }
+
+        [TestFixture]
         public class ContainsKey : TestMemoryCache
         {
             [Test]

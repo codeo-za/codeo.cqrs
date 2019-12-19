@@ -1,23 +1,62 @@
 using System;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Runtime.Caching;
+using System.Runtime.CompilerServices;
 
+[assembly: InternalsVisibleTo("Codeo.CQRS.Tests")]
 namespace Codeo.CQRS.Caching
 {
     public class MemoryCache : ICache
     {
         public static readonly CacheItemPolicy DefaultCachePolicy = new CacheItemPolicy();
 
-        public ObjectCache Cache => _actual;
+        // for testing only
+        internal ObjectCache Cache => _actual;
         private readonly ObjectCache _actual;
 
-        public MemoryCache() : this(System.Runtime.Caching.MemoryCache.Default)
+        public MemoryCache() : 
+            this(System.Runtime.Caching.MemoryCache.Default)
+        {
+        }
+
+        public MemoryCache(
+            string name,
+            long cacheSizeInMb,
+            int physicalMemoryLimitPercentage,
+            TimeSpan pollingInterval): this (
+            name,
+            CreateSettingsFrom(
+                cacheSizeInMb,
+                physicalMemoryLimitPercentage,
+                pollingInterval)
+            )
         {
         }
 
         public MemoryCache(ObjectCache cache)
         {
             _actual = cache;
+        }
+
+        private static NameValueCollection CreateSettingsFrom(
+            long cacheSize,
+            int physicalMemoryLimitPercentage,
+            TimeSpan pollingInterval)
+        {
+            return new NameValueCollection(3)
+            {
+                { "CacheMemoryLimitMegabytes", cacheSize.ToString() },
+                { "PhysicalMemoryLimitPercentage", physicalMemoryLimitPercentage.ToString() },
+                { "PollingInterval", pollingInterval.ToString() }
+            };
+        }
+
+        private MemoryCache(
+            string name, 
+            NameValueCollection settings)
+        {
+            _actual = new System.Runtime.Caching.MemoryCache(name, settings);
         }
 
         public bool ContainsKey(string key)
@@ -220,6 +259,12 @@ namespace Codeo.CQRS.Caching
             {
                 AbsoluteExpiration = expiration
             };
+        }
+
+        public void Dispose()
+        {
+            var disposable = _actual as IDisposable;
+            disposable?.Dispose();
         }
     }
 }

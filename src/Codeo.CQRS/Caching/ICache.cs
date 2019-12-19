@@ -5,7 +5,7 @@ namespace Codeo.CQRS.Caching
     /// <summary>
     /// Represents a class that can be used to store cached information.
     /// </summary>
-    public interface ICache
+    public interface ICache: IDisposable
     {
         /// <summary>
         /// Determines whether the cache contains an item with the specified key.

@@ -58,5 +58,9 @@ namespace Codeo.CQRS.Caching
         public void RemoveAll()
         {
         }
+
+        public void Dispose()
+        {
+        }
     }
 }
