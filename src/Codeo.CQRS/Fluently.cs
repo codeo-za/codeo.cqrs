@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using Codeo.CQRS.Caching;
 using Codeo.CQRS.Exceptions;
 using Dapper;
 
@@ -47,9 +48,15 @@ namespace Codeo.CQRS
                 return this;
             }
 
-            public Configuration WIthDebugMessagesDisabled()
+            public Configuration WithDebugMessagesDisabled()
             {
                 EntityDoesNotExistException.DebugEnabled = false;
+                return this;
+            }
+
+            public Configuration WithDefaultCacheImplementation(ICache cache)
+            {
+                BaseSqlExecutor.DefaultCacheImplementation = cache ?? new NoCache();
                 return this;
             }
 

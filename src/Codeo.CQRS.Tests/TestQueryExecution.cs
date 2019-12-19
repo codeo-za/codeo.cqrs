@@ -90,7 +90,7 @@ namespace Codeo.CQRS.Tests
                 public void ShouldGiveGenericMessage()
                 {
                     // Arrange
-                    Fluently.Configure().WIthDebugMessagesDisabled();
+                    Fluently.Configure().WithDebugMessagesDisabled();
                     var queryExecutor = new QueryExecutor(new NoCache());
                     // Act
                     Expect(() =>

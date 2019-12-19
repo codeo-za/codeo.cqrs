@@ -13,6 +13,8 @@ namespace Codeo.CQRS
 {
     public abstract class BaseSqlExecutor
     {
+        public static ICache DefaultCacheImplementation = new NoCache();
+        
         internal static IDbConnectionFactory ConnectionFactory { get; set; }
 
         internal static void AddExceptionHandler<T>(
@@ -25,7 +27,7 @@ namespace Codeo.CQRS
         private static readonly Dictionary<Type, Action<Operation, Exception>> ExceptionHandlers
             = new Dictionary<Type, Action<Operation, Exception>>();
 
-        public ICache Cache { get; set; } = new NoCache();
+        public ICache Cache { get; set; } = DefaultCacheImplementation;
 
         internal static readonly ConcurrentDictionary<Type, bool> KnownMappedTypes
             = new ConcurrentDictionary<Type, bool>();
