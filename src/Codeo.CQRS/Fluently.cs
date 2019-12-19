@@ -43,13 +43,13 @@ namespace Codeo.CQRS
 
             public Configuration WithDebugMessagesEnabled()
             {
-                EntityDoesNotExistException.DEBUG_ENABLED = true;
+                EntityDoesNotExistException.DebugEnabled = true;
                 return this;
             }
 
             public Configuration WIthDebugMessagesDisabled()
             {
-                EntityDoesNotExistException.DEBUG_ENABLED = false;
+                EntityDoesNotExistException.DebugEnabled = false;
                 return this;
             }
 

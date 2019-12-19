@@ -11,7 +11,10 @@ namespace Codeo.CQRS.Exceptions
 {
     public class EntityDoesNotExistException : Exception
     {
-        public static bool DEBUG_ENABLED = false;
+        /// <summary>
+        /// Set to true if you'd like detailed error messages
+        /// </summary>
+        public static bool DebugEnabled = false;
         public string EntityName { get; }
         public object Predicates { get; }
 
@@ -42,7 +45,7 @@ namespace Codeo.CQRS.Exceptions
             object predicates
         )
         {
-            return DEBUG_ENABLED
+            return DebugEnabled
                 ? CreateDiagnosticMessageFor(entityNameOrSql, predicates)
                 : CreateSimpleMessageFor(entityNameOrSql);
         }
