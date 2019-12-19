@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Transactions;
 using Codeo.CQRS.Caching;
 using Codeo.CQRS.Exceptions;
@@ -10,6 +12,7 @@ using Codeo.CQRS.Tests.Models;
 using Codeo.CQRS.Tests.Queries;
 using NExpect;
 using NUnit.Framework;
+using PeanutButter.Utils;
 using static PeanutButter.RandomGenerators.RandomValueGen;
 using static NExpect.Expectations;
 
@@ -215,17 +218,6 @@ namespace Codeo.CQRS.Tests
         [TestFixture]
         public class TestGenericUpdateCommand : TestQueryExecution
         {
-            public class UpdatePersonName : UpdateCommand
-            {
-                public UpdatePersonName(int id, string newName)
-                    : base(
-                        "update people set name = @newName where id = @id;",
-                        new { id, newName }
-                    )
-                {
-                }
-            }
-
             [Test]
             public void ShouldUpdate()
             {
@@ -241,31 +233,10 @@ namespace Codeo.CQRS.Tests
                 Expect(inDb.Name).To.Equal(newName);
             }
         }
+
         [TestFixture]
         public class TestGenericDeleteCommand : TestQueryExecution
         {
-            public class DeletePerson : UpdateCommand
-            {
-                public DeletePerson(int id)
-                    : base(
-                        "delete from people where id = @id;",
-                        new { id }
-                    )
-                {
-                }
-            }
-
-            public class DeletePersonWithResult : UpdateCommand<int>
-            {
-                public DeletePersonWithResult(int id)
-                    : base(
-                        "delete from people where id = @id; select max(id) from people;",
-                        new { id }
-                    )
-                {
-                }
-            }
-
             [Test]
             public void ShouldDelete()
             {
@@ -279,7 +250,7 @@ namespace Codeo.CQRS.Tests
                 var inDb = FindPersonById(id);
                 Expect(inDb).To.Be.Null();
             }
-            
+
             [Test]
             public void ShouldDeleteAndReturnValue()
             {
@@ -292,6 +263,297 @@ namespace Codeo.CQRS.Tests
                 // Assert
                 var inDb = FindPersonById(result);
                 Expect(inDb).Not.To.Be.Null();
+            }
+        }
+
+        [TestFixture]
+        public class TestCachingByAttribute : TestQueryExecution
+        {
+            [TestFixture]
+            public class OnSelectQueries : TestCachingByAttribute
+            {
+                [Test]
+                public void ShouldUseCache()
+                {
+                    using (new AutoResetter(
+                        UseMemoryCache,
+                        UseNoCache))
+                    {
+                        // Arrange
+                        var expected = GetRandomString(10, 20);
+                        var unexpected = GetAnother(expected);
+                        var id = CreatePerson(expected);
+                        var query = new FindPersonById(id);
+                        // Act
+                        var inDb = QueryExecutor.Execute(query);
+                        CommandExecutor.Execute(new UpdatePersonName(id, unexpected));
+                        var shouldBeCached = QueryExecutor.Execute(query);
+                        // Assert
+                        Expect(inDb.Name)
+                            .To.Equal(expected);
+                        Expect(shouldBeCached.Name)
+                            .To.Equal(expected, () => $"Should get cached original name: {expected}");
+                    }
+                }
+
+                [Test]
+                public void ShouldNotUseCacheWhenCacheKeyPropertiesDiffer()
+                {
+                    // Arrange
+                    var name1 = GetRandomString(10, 20);
+                    var name2 = GetAnother(name1);
+                    var id1 = CreatePerson(name1);
+                    var id2 = CreatePerson(name2);
+                    var query1 = new FindPersonById(id1);
+                    var query2 = new FindPersonById(id2);
+                    // Act
+                    var person1 = QueryExecutor.Execute(query1);
+                    var person2 = QueryExecutor.Execute(query2);
+                    // Assert
+                    Expect(person1.Name)
+                        .To.Equal(name1);
+                    Expect(person2.Name)
+                        .To.Equal(name2);
+                }
+
+                [Test]
+                public void ShouldAutomaticallyExpire()
+                {
+                    using (new AutoResetter(
+                        UseMemoryCache,
+                        UseNoCache))
+                    {
+                        // Arrange
+                        var originalName = GetRandomString(10, 20);
+                        var newName = GetAnother(originalName);
+                        var id = CreatePerson(originalName);
+                        var query = new FindPersonByIdShortLived(id);
+                        // Act
+                        var inDb = QueryExecutor.Execute(query);
+                        CommandExecutor.Execute(new UpdatePersonName(id, newName));
+                        var shouldBeCached = QueryExecutor.Execute(query);
+                        Thread.Sleep(1500);
+                        var shouldNotBeCached = QueryExecutor.Execute(query);
+                        // Assert
+                        Expect(inDb.Name)
+                            .To.Equal(originalName);
+                        Expect(shouldBeCached.Name)
+                            .To.Equal(originalName, () => $"Should get cached original name: {originalName}");
+                        Expect(shouldNotBeCached.Name)
+                            .To.Equal(newName,
+                                () => $"Should have expired the cached item and retrieved new name: {newName}");
+                    }
+                }
+            }
+
+            [TestFixture]
+            public class ShouldNeverUseOnTransformQueries : TestCachingByAttribute
+            {
+                [TestFixture]
+                public class WhenIsDelete: ShouldNeverUseOnTransformQueries
+                {
+                    [Test]
+                    public void ShouldNotUse()
+                    {
+                        // Arrange
+                        var name = GetRandomString(10);
+                        var other = GetAnother(name);
+                        var updated = GetAnother<string>(new[] { name, other });
+                        var updated2 = GetAnother<string>(new[] { name, other, updated });
+                        var idToDelete = CreatePerson(name);
+                        var idToUpdate = CreatePerson(other);
+
+                        // Act
+                        CommandExecutor.Execute(
+                            new DeletePersonNoResultWithSideEffects(idToDelete, idToUpdate, updated)
+                        );
+                        var initialResult = FindPersonById(idToUpdate);
+                        Expect(initialResult.Name)
+                            .To.Equal(updated);
+                        CommandExecutor.Execute(
+                            new DeletePersonNoResultWithSideEffects(idToDelete, idToUpdate, updated2)
+                        );
+                        var secondResult = FindPersonById(idToUpdate);
+
+                        // Assert
+                        Expect(secondResult.Name)
+                            .To.Equal(updated2);
+                    }
+
+                    [Test]
+                    public void ShouldNotUseWithResults()
+                    {
+                        // Arrange
+                        var name = GetRandomString(10);
+                        var other = GetAnother(name);
+                        var updated = GetAnother<string>(new[] { name, other });
+                        var idToDelete = CreatePerson(name);
+                        var idToUpdate = CreatePerson(other);
+
+                        // Act
+                        var initialResult = CommandExecutor.Execute(
+                            new DeletePersonWithArbResult(idToDelete, idToUpdate)
+                        );
+                        Expect(initialResult.Name)
+                            .To.Equal(other);
+                        UpdatePersonName(idToUpdate, updated);
+                        var secondResult = CommandExecutor.Execute(
+                            new DeletePersonWithArbResult(idToDelete, idToUpdate)
+                        );
+
+                        // Assert
+                        Expect(secondResult.Name)
+                            .To.Equal(updated);
+                    }
+                }
+
+                [TestFixture]
+                public class WhenIsInsert: ShouldNeverUseOnTransformQueries
+                {
+                    [Test]
+                    public void ShouldNotUse()
+                    {
+                        // Arrange
+                        var originalName = GetRandomString(10);
+                        var update1 = GetAnother(originalName);
+                        var update2 = GetAnother<string>(new[] { originalName, update1 });
+                        var id = CreatePerson(originalName);
+                        // Act
+                        CommandExecutor.Execute(
+                            new CreatePersonWithSideEffect(
+                                GetRandomString(10),
+                                id,
+                                update1)
+                        );
+
+                        Expect(NameOfPerson(id))
+                            .To.Equal(update1);
+
+                        CommandExecutor.Execute(
+                            new CreatePersonWithSideEffect(
+                                GetRandomString(10),
+                                id,
+                                update2
+                            ));
+                        // Assert
+                        Expect(NameOfPerson(id))
+                            .To.Equal(update2);
+                    }
+
+                    [Test]
+                    public void ShouldNotUseOnWithResult()
+                    {
+                        // Arrange
+                        var name = GetRandomString(10);
+                        var cmd = new CreatePerson(name);
+                        // Act
+                        var result1 = CommandExecutor.Execute(cmd);
+                        var result2 = CommandExecutor.Execute(cmd);
+                        // Assert
+                        Expect(result1).Not.To.Equal(result2);
+                        Expect(FindPersonById(result1).Name)
+                            .To.Equal(name);
+                        Expect(FindPersonById(result2).Name)
+                            .To.Equal(name);
+                    }
+                }
+
+                [TestFixture]
+                public class WhenIsUpdate: ShouldNeverUseOnTransformQueries
+                {
+                    [Test]
+                    public void ShouldNotUse()
+                    {
+                        // Arrange
+                        var name1 = GetRandomString();
+                        var name2 = GetAnother(name1);
+                        var id = CreatePerson(GetRandomString());
+                        // Act
+                        CommandExecutor.Execute(
+                            new UpdatePersonName(
+                                id,
+                                name1
+                            )
+                        );
+                        Expect(NameOfPerson(id))
+                            .To.Equal(name1);
+                        CommandExecutor.Execute(
+                            new UpdatePersonName(
+                                id,
+                                name2
+                            )
+                        );
+                        // Assert
+                        Expect(NameOfPerson(id))
+                            .To.Equal(name2);
+                    }
+
+                    [Test]
+                    public void ShouldNotUseOnResults()
+                    {
+                        // Arrange
+                        var name1 = GetRandomString();
+                        var name2 = GetAnother(name1);
+                        var id = CreatePerson(GetRandomString());
+                        // Act
+                        var result1 = CommandExecutor.Execute(
+                            new UpdatePersonNameWithResult(
+                                id,
+                                name1
+                            )
+                        );
+                        Expect(NameOfPerson(id))
+                            .To.Equal(name1);
+                        Expect(result1)
+                            .To.Equal(name1);
+                    
+                        var result2 = CommandExecutor.Execute(
+                            new UpdatePersonNameWithResult(
+                                id,
+                                name2
+                            )
+                        );
+                        // Assert
+                        Expect(NameOfPerson(id))
+                            .To.Equal(name2);
+                        Expect(result2)
+                            .To.Equal(name2);
+                    }
+                }
+            }
+
+            private string NameOfPerson(int id)
+            {
+                return QueryExecutor.Execute(
+                    new FindPersonById(id)
+                    {
+                        ShouldInvalidateCache = true
+                    }
+                ).Name;
+            }
+
+            private void UpdatePersonName(int id, string newName)
+            {
+                CommandExecutor.Execute(
+                    new UpdatePersonName(
+                        id,
+                        newName
+                    )
+                );
+            }
+
+            private void UseNoCache()
+            {
+                Fluently.Configure()
+                    .WithDefaultCacheImplementation(new NoCache());
+            }
+
+            private void UseMemoryCache()
+            {
+                Fluently.Configure()
+                    .WithDefaultCacheImplementation(
+                        new MemoryCache()
+                    );
             }
         }
 

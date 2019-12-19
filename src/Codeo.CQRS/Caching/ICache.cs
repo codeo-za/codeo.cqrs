@@ -40,6 +40,9 @@ namespace Codeo.CQRS.Caching
         /// <param name="slidingExpiration">
         /// The amount of time the item should remain in the cache before getting removed.
         /// If the item is accessed, this time will reset to 0.
+        /// WARNING: this makes sliding expiration a bad idea for "hot" data:
+        /// "hot" data which is updated will never be evicted from the cache
+        /// so updates won't come through
         /// </param>
         void Set(string key, object value, TimeSpan slidingExpiration);
 

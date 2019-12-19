@@ -2,8 +2,13 @@ using System;
 
 namespace Codeo.CQRS.Tests.Commands
 {
+    // cache attributes should be ignored for inserts!
+    [Cache(60, nameof(Name), nameof(Enabled))]
     public class CreatePerson : InsertCommand<int>
     {
+        public string Name { get; }
+        public bool Enabled { get; }
+
         private const string sql = @"
             insert into people (name, enabled, created)
             values (@name, @enabled, @created);
@@ -17,15 +22,22 @@ namespace Codeo.CQRS.Tests.Commands
         public CreatePerson(string name, bool enabled)
             : base(sql, new
             {
-                name, 
+                name,
                 enabled,
                 created = DateTime.Now
             })
         {
+            Name = name;
+            Enabled = enabled;
         }
     }
+
+    [Cache(60, nameof(Name), nameof(Enabled))]
     public class CreatePersonNoResult : InsertCommand
     {
+        public string Name { get; }
+        public bool Enabled { get; }
+
         private const string sql = @"
             insert into people (name, enabled, created)
             values (@name, @enabled, @created);
@@ -38,11 +50,35 @@ namespace Codeo.CQRS.Tests.Commands
         public CreatePersonNoResult(string name, bool enabled)
             : base(sql, new
             {
-                name, 
+                name,
                 enabled,
                 created = DateTime.Now
             })
         {
+            Name = name;
+            Enabled = enabled;
+        }
+    }
+
+    [Cache(60, nameof(Name), nameof(IdToUpdate), nameof(NewName))]
+    public class CreatePersonWithSideEffect : InsertCommand
+    {
+        public string Name { get; }
+        public int IdToUpdate { get; }
+        public string NewName { get; }
+
+        public CreatePersonWithSideEffect(
+            string name,
+            int idToUpdate,
+            string newName): base(
+            @"insert into people (name, enabled, created)
+                values (@name, @enabled, @created);
+                update people set name = @newName where id = @idToUpdate;",
+            new { name, idToUpdate, newName })
+        {
+            Name = name;
+            IdToUpdate = idToUpdate;
+            NewName = newName;
         }
     }
 }

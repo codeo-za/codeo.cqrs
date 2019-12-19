@@ -90,7 +90,7 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class Dispose: TestMemoryCache
+        public class Dispose : TestMemoryCache
         {
             [Test]
             public void ShouldDisposeUnderlyingCache()
@@ -116,7 +116,8 @@ namespace Codeo.CQRS.Tests
 
                 public bool Disposed { get; private set; }
 
-                public override CacheEntryChangeMonitor CreateCacheEntryChangeMonitor(IEnumerable<string> keys, string regionName = null)
+                public override CacheEntryChangeMonitor CreateCacheEntryChangeMonitor(IEnumerable<string> keys,
+                    string regionName = null)
                 {
                     throw new NotImplementedException();
                 }
@@ -131,7 +132,10 @@ namespace Codeo.CQRS.Tests
                     throw new NotImplementedException();
                 }
 
-                public override object AddOrGetExisting(string key, object value, DateTimeOffset absoluteExpiration, string regionName = null)
+                public override object AddOrGetExisting(string key,
+                    object value,
+                    DateTimeOffset absoluteExpiration,
+                    string regionName = null)
                 {
                     throw new NotImplementedException();
                 }
@@ -141,7 +145,10 @@ namespace Codeo.CQRS.Tests
                     throw new NotImplementedException();
                 }
 
-                public override object AddOrGetExisting(string key, object value, CacheItemPolicy policy, string regionName = null)
+                public override object AddOrGetExisting(string key,
+                    object value,
+                    CacheItemPolicy policy,
+                    string regionName = null)
                 {
                     throw new NotImplementedException();
                 }
@@ -156,7 +163,10 @@ namespace Codeo.CQRS.Tests
                     throw new NotImplementedException();
                 }
 
-                public override void Set(string key, object value, DateTimeOffset absoluteExpiration, string regionName = null)
+                public override void Set(string key,
+                    object value,
+                    DateTimeOffset absoluteExpiration,
+                    string regionName = null)
                 {
                     throw new NotImplementedException();
                 }
@@ -171,7 +181,8 @@ namespace Codeo.CQRS.Tests
                     throw new NotImplementedException();
                 }
 
-                public override IDictionary<string, object> GetValues(IEnumerable<string> keys, string regionName = null)
+                public override IDictionary<string, object> GetValues(IEnumerable<string> keys,
+                    string regionName = null)
                 {
                     throw new NotImplementedException();
                 }
@@ -794,7 +805,7 @@ namespace Codeo.CQRS.Tests
                             fetcher.Fetch<int>,
                             expires
                         );
-                        
+
                         // Assert
                         Expect(fetcher)
                             .To.Have.Received(2)
@@ -841,50 +852,9 @@ namespace Codeo.CQRS.Tests
 
         private ObjectCache CreateSubstituteObjectCache()
         {
-            var backingStore = new Dictionary<string, object>();
-            var result = Substitute.For<ObjectCache>();
-            result.When(o => o.Set(
-                Arg.Any<string>(),
-                Arg.Any<object>(),
-                Arg.Any<CacheItemPolicy>())
-            ).Do(ci =>
-            {
-                var args = ci.Args();
-                backingStore[args[0] as string] = args[1];
-            });
-            result.Get(Arg.Any<string>(), Arg.Any<string>())
-                .Returns(ci =>
-                {
-                    var args = ci.Args();
-                    return backingStore.TryGetValue(args[0] as string, out var cached)
-                        ? cached
-                        : null;
-                });
-            result.Get(Arg.Any<string>())
-                .Returns(ci =>
-                {
-                    var args = ci.Args();
-                    return backingStore.TryGetValue(args[0] as string, out var cached)
-                        ? cached
-                        : null;
-                });
-            result.Contains(Arg.Any<string>())
-                .Returns(ci => backingStore.ContainsKey(ci.Args()[0] as string));
-            result.Contains(Arg.Any<string>(), Arg.Any<string>())
-                .Returns(ci => backingStore.ContainsKey(ci.Args()[0] as string));
-            result.When(o => o.Remove(Arg.Any<string>()))
-                .Do(ci =>
-                {
-                    backingStore.Remove(ci.Args()[0] as string);
-                });
-            result.When(o => o.Remove(Arg.Any<string>(), Arg.Any<string>()))
-                .Do(ci =>
-                {
-                    backingStore.Remove(ci.Args()[0] as string);
-                });
-            var foo = result as IEnumerable<KeyValuePair<string, object>>;
-            foo.GetEnumerator().Returns(ci => backingStore.GetEnumerator());
-            return result;
+            return SubstituteObjectCacheBuilder
+                .Create()
+                .Build();
         }
 
         private ICache Create(

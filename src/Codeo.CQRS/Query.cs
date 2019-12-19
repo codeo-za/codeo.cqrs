@@ -1,5 +1,4 @@
-﻿using System;
-using System.Transactions;
+﻿using System.Transactions;
 using Codeo.CQRS.Exceptions;
 using Newtonsoft.Json;
 
