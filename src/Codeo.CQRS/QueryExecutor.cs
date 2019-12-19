@@ -30,7 +30,11 @@ namespace Codeo.CQRS
     public class QueryExecutor : IQueryExecutor
     {
         private readonly ICache _cache;
-        
+
+        public QueryExecutor() : this(BaseSqlExecutor.DefaultCacheImplementation)
+        {
+        }
+
         public QueryExecutor(ICache cache)
         {
             _cache = cache;
