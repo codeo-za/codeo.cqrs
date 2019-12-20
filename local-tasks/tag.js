@@ -1,10 +1,11 @@
 const gulp = requireModule("gulp-with-help"),
   gutil = requireModule("gulp-util"),
   editXml = require("gulp-edit-xml"),
-  Git = require("simple-git"),
+  Git = require("simple-git/promise"),
   git = new Git(),
   config = require("./config"),
   canPush = require("./modules/can-push"),
+  resolveGitRemote = requireModule("resolve-git-remote"),
   containingFolder = `src/${config.packageProject}`;
 
 gulp.task("tag", () => {
@@ -39,20 +40,15 @@ gulp.task("push-tags", "Pushes tags and commits", async () => {
 });
 
 function gitTag(tag, comment) {
-  return new Promise(async (resolve, reject) => {
-    git.addAnnotatedTag(tag, comment, err => {
-      if (err) {
-        return reject(err);
-      }
-      resolve();
-    });
-  });
+  await git.addAnnotatedTag(tag, comment);
 }
 
 function gitPushTags() {
+  gutil.log(gutil.colors.green("pushing tags..."));
+  const remote = await resolveGitRemote();
+  await git.pushTags(remote);
   return new Promise((resolve, reject) => {
-    gutil.log(gutil.colors.green("pushing tags..."));
-    git.pushTags("origin", err => {
+    git.pushTags(remote, err => {
       if (err) {
         return reject(err);
       }
@@ -62,13 +58,9 @@ function gitPushTags() {
 }
 
 function gitPush() {
-  return new Promise((resolve, reject) => {
-    gutil.log(gutil.colors.green("pushing local commits..."));
-    git.push("origin", "master", err => {
-      if (err) {
-        return reject(err);
-      }
-      resolve();
-    });
-  });
+  const
+    remote = await resolveGitRemote(),
+    branch = await resolveGitBranch();
+  gutil.log(gutil.colors.green("pushing local commits..."));
+  await git.push(remote, branch);
 }

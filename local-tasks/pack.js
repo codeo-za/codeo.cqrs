@@ -3,7 +3,7 @@ const gulp = requireModule("gulp-with-help"),
   runSequence = requireModule("run-sequence"),
   isPackMasterBranch = require("./modules/is-pack-master-branch"),
   findLocalNuget = requireModule("find-local-nuget"),
-  git = require("simple-git"),
+  git = require("simple-git/promise"),
   spawn = requireModule("spawn");
 
 gulp.task("prepare-pack", done => {
@@ -18,13 +18,7 @@ gulp.task("pack", ["prepare-pack"], () => {
 });
 
 function readCurrentShortSha() {
-  return new Promise((resolve, reject) => {
-    git().revparse([ "--short", "HEAD" ], (err, data) => {
-      return err
-        ? reject(err)
-        : resolve(data);
-    });
-  });
+  return await git().revparse([ "--short", "HEAD" ]);
 }
 
 function timestamp() {
