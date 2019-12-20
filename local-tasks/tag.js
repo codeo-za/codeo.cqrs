@@ -6,6 +6,7 @@ const gulp = requireModule("gulp-with-help"),
   config = require("./config"),
   canPush = require("./modules/can-push"),
   resolveGitRemote = requireModule("resolve-git-remote"),
+  gitTag = requireModule("git-tag"),
   containingFolder = `src/${config.packageProject}`;
 
 gulp.task("tag", () => {
@@ -32,18 +33,12 @@ gulp.task("tag", () => {
 });
 
 gulp.task("push-tags", "Pushes tags and commits", async () => {
-  return gitPushTags()
-    .then(() => gitPush())
-    .then(() =>
-      gutil.log(gutil.colors.green("-> all commits and tags pushed!"))
-    );
+  await gitPushTags();
+  await gitPush();
+  gutil.log(gutil.colors.green("-> all commits and tags pushed!"))
 });
 
-function gitTag(tag, comment) {
-  await git.addAnnotatedTag(tag, comment);
-}
-
-function gitPushTags() {
+async function gitPushTags() {
   gutil.log(gutil.colors.green("pushing tags..."));
   const remote = await resolveGitRemote();
   await git.pushTags(remote);
@@ -57,7 +52,7 @@ function gitPushTags() {
   });
 }
 
-function gitPush() {
+async function gitPush() {
   const
     remote = await resolveGitRemote(),
     branch = await resolveGitBranch();
