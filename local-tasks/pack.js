@@ -17,7 +17,7 @@ gulp.task("pack", ["prepare-pack"], () => {
   return doPack();
 });
 
-function readCurrentShortSha() {
+async function readCurrentShortSha() {
   return await git().revparse([ "--short", "HEAD" ]);
 }
 
