@@ -1,6 +1,6 @@
 const
   gulp = requireModule("gulp-with-help"),
-  gutil = require("gulp-util"),
+  gutil = requireModule("gulp-util"),
   editXml = require("gulp-edit-xml"),
   config = require("./config"),
   env = requireModule("env"),
