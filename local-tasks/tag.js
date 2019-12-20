@@ -6,6 +6,7 @@ const gulp = requireModule("gulp-with-help"),
   config = require("./config"),
   canPush = require("./modules/can-push"),
   resolveGitRemote = requireModule("resolve-git-remote"),
+  resolveGitBranch = requireModule("resolve-git-branch"),
   gitTag = requireModule("git-tag"),
   containingFolder = `src/${config.packageProject}`;
 
@@ -42,14 +43,6 @@ async function gitPushTags() {
   gutil.log(gutil.colors.green("pushing tags..."));
   const remote = await resolveGitRemote();
   await git.pushTags(remote);
-  return new Promise((resolve, reject) => {
-    git.pushTags(remote, err => {
-      if (err) {
-        return reject(err);
-      }
-      resolve();
-    });
-  });
 }
 
 async function gitPush() {
