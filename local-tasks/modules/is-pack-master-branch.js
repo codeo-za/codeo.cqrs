@@ -1,5 +1,5 @@
 const
-  readCurrentBranch = require("./read-current-branch"),
+  readCurrentBranch = requireModule("./read-current-branch"),
   env = requireModule("env");
 env.register({
   name: "PACK_MASTER",

@@ -4,10 +4,15 @@ const gulp = requireModule("gulp-with-help"),
   Git = require("simple-git"),
   git = new Git(),
   config = require("./config"),
+  canPush = require("./modules/can-push"),
   containingFolder = `src/${config.packageProject}`;
 
 gulp.task("tag", () => {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
+    const pushAllowed = await canPush();
+    if (!pushAllowed) {
+      reject("Push not allowed to remote; refusing to tag");
+    }
     gulp.src(`${containingFolder}/Package.nuspec`).pipe(
       editXml(xml => {
         const node = xml.package.metadata[0].version,
@@ -25,7 +30,7 @@ gulp.task("tag", () => {
   });
 });
 
-gulp.task("push-tags", "Pushes tags and commits", () => {
+gulp.task("push-tags", "Pushes tags and commits", async () => {
   return gitPushTags()
     .then(() => gitPush())
     .then(() =>
@@ -34,7 +39,7 @@ gulp.task("push-tags", "Pushes tags and commits", () => {
 });
 
 function gitTag(tag, comment) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     git.addAnnotatedTag(tag, comment, err => {
       if (err) {
         return reject(err);

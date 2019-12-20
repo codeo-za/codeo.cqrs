@@ -6,6 +6,7 @@ const
   env = requireModule("env"),
   promisify = requireModule("promisify-stream"),
   chalk = require("chalk"),
+  canPush = require("./modules/can-push");
   isPackMasterBranch = require("./modules/is-pack-master-branch"),
   containingFolder = `src/${config.packageProject}`;
 
@@ -13,6 +14,11 @@ gulp.task("increment-package-version", async () => {
   const onPackMaster = await isPackMasterBranch();
   if (!onPackMaster) {
     console.warn(chalk.yellow(`WARNING: not incrementing package version: not on pack master branch "${env.resolve("PACK_MASTER")}"`));
+    return;
+  }
+  const pushAllowed = await canPush();
+  if (!pushAllowed) {
+    console.warn(chalk.yellow(`WARNING: unable to push changes, bailing out on package version increment`));
     return;
   }
 
