@@ -15,15 +15,13 @@ namespace Codeo.CQRS
     /// </summary>
     public class CacheAttribute : Attribute
     {
-        // this is how many seconds are in a year
-        // https://www.rapidtables.com/calc/time/seconds-in-year.html
-        public const int ONE_YEAR = 31622400;
+        public const int ONE_YEAR_IN_SECONDS = 31622400;
         public HashSet<string> CacheKeyProperties { get; }
         public CacheExpiration CacheExpiration { get; }
         public int TTL { get; }
 
         public CacheAttribute(params string[] cacheKeyProperties)
-            : this(ONE_YEAR, cacheKeyProperties)
+            : this(ONE_YEAR_IN_SECONDS, cacheKeyProperties)
         {
         }
 

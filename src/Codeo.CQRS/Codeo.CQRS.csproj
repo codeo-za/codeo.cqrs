@@ -18,5 +18,6 @@
   <ItemGroup>
     <Reference Include="System.Transactions" Condition="'$(TargetFramework)' == 'net462'" />
   </ItemGroup>
-
+    
+  <Import Project="..\MonoForFramework.targets"/>
 </Project>

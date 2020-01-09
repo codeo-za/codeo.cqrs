@@ -2,5 +2,7 @@
     <PropertyGroup>
         <UseSharedCompilation>true</UseSharedCompilation>
         <LangVersion>latest</LangVersion>
+        <!-- error results from multi-targeting and can be ignored -->
+        <NoWarn>NU1701</NoWarn>
     </PropertyGroup>
 </Project>

@@ -7,7 +7,7 @@ using System.Reflection;
 
 namespace Codeo.CQRS
 {
-    public enum SingleSelectMissingStrategies
+    public enum SingleSelectNoResultStrategies
     {
         Throw,
         ReturnNull
@@ -21,7 +21,7 @@ namespace Codeo.CQRS
     /// <typeparam name="T"></typeparam>
     public abstract class SelectQuery<T> : Query<T>
     {
-        private readonly SingleSelectMissingStrategies _missingStrategy;
+        private readonly SingleSelectNoResultStrategies _noResultStrategy;
         private readonly string _sql;
         private readonly object _parameters;
 
@@ -41,16 +41,16 @@ namespace Codeo.CQRS
         protected SelectQuery(
             string sql,
             object parameters,
-            SingleSelectMissingStrategies missingStrategy) : this(sql, parameters)
+            SingleSelectNoResultStrategies noResultStrategy) : this(sql, parameters)
         {
             if (IsEnumerableResult)
             {
                 throw new ArgumentOutOfRangeException(
-                    $"{nameof(missingStrategy)} is only valid for single-result queries"
+                    $"{nameof(noResultStrategy)} is only valid for single-result queries"
                 );
             }
 
-            _missingStrategy = missingStrategy;
+            _noResultStrategy = noResultStrategy;
         }
 
 
@@ -68,7 +68,7 @@ namespace Codeo.CQRS
 
         private void PerformSingleItemQuery()
         {
-            Result = _missingStrategy == SingleSelectMissingStrategies.Throw
+            Result = _noResultStrategy == SingleSelectNoResultStrategies.Throw
                 ? SelectFirst<T>(_sql, _parameters)
                 : SelectMany<T>(_sql, _parameters).FirstOrDefault();
         }
