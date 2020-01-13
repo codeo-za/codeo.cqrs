@@ -5,7 +5,7 @@ const
   canPush = require("./modules/can-push"),
   runSequence = requireModule("run-sequence");
 
-gulp.task("release", ["build"], async () => {
+gulp.task("release", async () => {
   const
     onPackMasterBranch = await isPackMaster(),
     pushAllowed = await canPush(),

@@ -8,7 +8,7 @@ const gulp = requireModule("gulp-with-help"),
 
 gulp.task("prepare-pack", done => {
   runSequence(
-    "build-for-release",
+    "build",
     "increment-package-version",
     done);
 });
