@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Codeo.CQRS.Caching;
 
 namespace Codeo.CQRS
 {
@@ -31,7 +32,12 @@ namespace Codeo.CQRS
     {
         private readonly IQueryExecutor _queryExecutor;
         private readonly ICache _cache;
-        
+
+        public CommandExecutor(IQueryExecutor queryExecutor)
+            : this(queryExecutor, BaseSqlExecutor.DefaultCacheImplementation)
+        {
+        }
+
         public CommandExecutor(
             IQueryExecutor queryExecutor,
             ICache cache)

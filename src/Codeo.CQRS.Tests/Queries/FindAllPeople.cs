@@ -1,12 +1,13 @@
 using System.Collections.Generic;
+using Codeo.CQRS.Tests.Models;
 
 namespace Codeo.CQRS.Tests.Queries
 {
-    public class FindAllPeople : Query<IEnumerable<Person>>
+    public class FindAllPeople : SelectQuery<IEnumerable<Person>>
     {
-        public override void Execute()
+        public FindAllPeople() : base("select * from people;")
         {
-            Result = SelectMany<Person>("select * from people;");
         }
+
     }
 }

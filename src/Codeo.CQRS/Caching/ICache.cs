@@ -1,11 +1,11 @@
 using System;
 
-namespace Codeo.CQRS
+namespace Codeo.CQRS.Caching
 {
     /// <summary>
     /// Represents a class that can be used to store cached information.
     /// </summary>
-    public interface ICache
+    public interface ICache: IDisposable
     {
         /// <summary>
         /// Determines whether the cache contains an item with the specified key.
@@ -37,7 +37,13 @@ namespace Codeo.CQRS
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
-        /// <param name="slidingExpiration">The amount of time the item should remain in the cache before getting removed.  If the item is accessed, this time will reset to 0.</param>
+        /// <param name="slidingExpiration">
+        /// The amount of time the item should remain in the cache before getting removed.
+        /// If the item is accessed, this time will reset to 0.
+        /// WARNING: this makes sliding expiration a bad idea for "hot" data:
+        /// "hot" data which is updated will never be evicted from the cache
+        /// so updates won't come through
+        /// </param>
         void Set(string key, object value, TimeSpan slidingExpiration);
 
         /// <summary>

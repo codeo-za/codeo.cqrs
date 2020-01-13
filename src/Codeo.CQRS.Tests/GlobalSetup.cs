@@ -8,19 +8,23 @@ namespace Codeo.CQRS.Tests
     [SetUpFixture]
     public class GlobalSetup
     {
-        private TempDBMySql _db;
-
-        [OneTimeSetUp]
-        public void OneTimeSetup()
+        private static TempDBMySql _db;
+        public static void OneTimeSetup()
         {
+            if (_db != null)
+            {
+                // already set up
+                return;
+            }
+
             _db = new TempDBMySql();
             Fluently.Configure()
                     .WithConnectionFactory(new TempDbConnectionFactory(_db))
-                    .WithEntitiesFrom(typeof(TestQuery).Assembly);
+                    .WithEntitiesFrom(typeof(TestQueryExecution).Assembly);
             CreateBasicSchemaWith(_db.CreateConnection());
         }
 
-        private void CreateBasicSchemaWith(DbConnection connection)
+        private static void CreateBasicSchemaWith(DbConnection connection)
         {
             connection.Query(@"
 create table people(
@@ -38,6 +42,15 @@ create table people(
         {
             _db?.Dispose();
             _db = null;
+        }
+    }
+
+    public abstract class TestFixtureRequiringData
+    {
+        [OneTimeSetUp]
+        public void OneTimeSetup()
+        {
+            GlobalSetup.OneTimeSetup();
         }
     }
 }

@@ -2,19 +2,17 @@ using System.Collections.Generic;
 
 namespace Codeo.CQRS.Tests.Queries
 {
-    public class FindCarlSaganAlike : Query<PersonLike>
+    public class FindCarlSaganAlike : SelectQuery<PersonLike>
     {
-        public override void Execute()
+        public FindCarlSaganAlike() : base("select * from people where name = 'Carl Sagan';")
         {
-            Result = SelectFirst<PersonLike>("select * from people where name = 'Carl Sagan';");
         }
     }
-    
-    public class FindCarlSaganAlikes : Query<IEnumerable<PersonLike>>
+
+    public class FindCarlSaganAlikes : SelectQuery<IEnumerable<PersonLike>>
     {
-        public override void Execute()
+        public FindCarlSaganAlikes() : base("select * from people where name = 'Carl Sagan';")
         {
-            Result = SelectMany<PersonLike>("select * from people where name = 'Carl Sagan';");
         }
     }
 }

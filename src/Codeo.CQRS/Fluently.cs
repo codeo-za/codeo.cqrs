@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using Codeo.CQRS.Caching;
+using Codeo.CQRS.Exceptions;
 using Dapper;
 
 namespace Codeo.CQRS
@@ -40,7 +42,27 @@ namespace Codeo.CQRS
                 return this;
             }
 
-            public Configuration WithEntitiesFrom(Assembly assembly, Func<Type, bool> discriminator)
+            public Configuration WithDebugMessagesEnabled()
+            {
+                EntityDoesNotExistException.DebugEnabled = true;
+                return this;
+            }
+
+            public Configuration WithDebugMessagesDisabled()
+            {
+                EntityDoesNotExistException.DebugEnabled = false;
+                return this;
+            }
+
+            public Configuration WithDefaultCacheImplementation(ICache cache)
+            {
+                BaseSqlExecutor.DefaultCacheImplementation = cache ?? new NoCache();
+                return this;
+            }
+
+            public Configuration WithEntitiesFrom(
+                Assembly assembly, 
+                Func<Type, bool> discriminator)
             {
                 var entityTypes = assembly.GetTypes().Where(discriminator);
 

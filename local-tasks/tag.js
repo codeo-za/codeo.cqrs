@@ -1,13 +1,21 @@
 const gulp = requireModule("gulp-with-help"),
-  gutil = require("gulp-util"),
+  gutil = requireModule("gulp-util"),
   editXml = require("gulp-edit-xml"),
-  Git = require("simple-git"),
+  Git = require("simple-git/promise"),
   git = new Git(),
   config = require("./config"),
+  canPush = require("./modules/can-push"),
+  resolveGitRemote = requireModule("resolve-git-remote"),
+  resolveGitBranch = requireModule("resolve-git-branch"),
+  gitTag = requireModule("git-tag"),
   containingFolder = `src/${config.packageProject}`;
 
 gulp.task("tag", () => {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
+    const pushAllowed = await canPush();
+    if (!pushAllowed) {
+      reject("Push not allowed to remote; refusing to tag");
+    }
     gulp.src(`${containingFolder}/Package.nuspec`).pipe(
       editXml(xml => {
         const node = xml.package.metadata[0].version,
@@ -25,45 +33,22 @@ gulp.task("tag", () => {
   });
 });
 
-gulp.task("push-tags", "Pushes tags and commits", () => {
-  return gitPushTags()
-    .then(() => gitPush())
-    .then(() =>
-      gutil.log(gutil.colors.green("-> all commits and tags pushed!"))
-    );
+gulp.task("push-tags", "Pushes tags and commits", async () => {
+  await gitPushTags();
+  await gitPush();
+  gutil.log(gutil.colors.green("-> all commits and tags pushed!"))
 });
 
-function gitTag(tag, comment) {
-  return new Promise((resolve, reject) => {
-    git.addAnnotatedTag(tag, comment, err => {
-      if (err) {
-        return reject(err);
-      }
-      resolve();
-    });
-  });
+async function gitPushTags() {
+  gutil.log(gutil.colors.green("pushing tags..."));
+  const remote = await resolveGitRemote();
+  await git.pushTags(remote);
 }
 
-function gitPushTags() {
-  return new Promise((resolve, reject) => {
-    gutil.log(gutil.colors.green("pushing tags..."));
-    git.pushTags("origin", err => {
-      if (err) {
-        return reject(err);
-      }
-      resolve();
-    });
-  });
-}
-
-function gitPush() {
-  return new Promise((resolve, reject) => {
-    gutil.log(gutil.colors.green("pushing local commits..."));
-    git.push("origin", "master", err => {
-      if (err) {
-        return reject(err);
-      }
-      resolve();
-    });
-  });
+async function gitPush() {
+  const
+    remote = await resolveGitRemote(),
+    branch = await resolveGitBranch();
+  gutil.log(gutil.colors.green("pushing local commits..."));
+  await git.push(remote, branch);
 }

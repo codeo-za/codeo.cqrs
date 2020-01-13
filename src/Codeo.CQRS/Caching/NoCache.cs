@@ -1,6 +1,6 @@
 using System;
 
-namespace Codeo.CQRS
+namespace Codeo.CQRS.Caching
 {
     public class NoCache : ICache
     {
@@ -56,6 +56,10 @@ namespace Codeo.CQRS
         }
 
         public void RemoveAll()
+        {
+        }
+
+        public void Dispose()
         {
         }
     }
