@@ -20,8 +20,8 @@ gulp.task("release", ["build"], async () => {
     console.error(`Unable to perform "full" release with tags: `);
   }
   return fullRelease
-    ? runSequencePromise("cover-dotnet", "pack", "commit-release", "tag", "push-tags")
-    : runSequencePromise("cover-dotnet", "pack");
+    ? runSequencePromise("test-dotnet", "pack", "commit-release", "tag", "push-tags")
+    : runSequencePromise("test-dotnet", "pack");
 
   function runSequencePromise() {
     console.log("creating a sequence...");
