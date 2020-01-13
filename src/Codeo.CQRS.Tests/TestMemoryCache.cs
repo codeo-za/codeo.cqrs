@@ -41,8 +41,12 @@ namespace Codeo.CQRS.Tests
                 // Act
                 var result = MemoryCache.DefaultCachePolicy;
                 // Assert
-                Expect(result)
-                    .To.Deep.Equal(expected);
+                Expect(result.Priority)
+                    .To.Equal(expected.Priority);
+                Expect(result.AbsoluteExpiration)
+                    .To.Equal(expected.AbsoluteExpiration);
+                Expect(result.SlidingExpiration)
+                    .To.Equal(expected.SlidingExpiration);
             }
         }
 
@@ -692,7 +696,14 @@ namespace Codeo.CQRS.Tests
                 {
                     // Arrange
                     var actual = CreateSubstituteObjectCache();
-                    var items = GetRandomArray<KeyValuePair<string, int>>();
+                    // FIXME: PeanutButter.RandomGenerators is not generating random
+                    // KeyValuePairs correctly -- update to GetRandomCollection when it does
+                    var items = new[]
+                    {
+                        new KeyValuePair<string, int>(GetRandomString(), GetRandomInt()), 
+                        new KeyValuePair<string, int>(GetRandomString(), GetRandomInt()), 
+                        new KeyValuePair<string, int>(GetRandomString(), GetRandomInt()), 
+                    };
                     var sut = Create(actual);
                     items.ForEach(kvp => sut.Set(kvp.Key, kvp.Value));
                     // Act
