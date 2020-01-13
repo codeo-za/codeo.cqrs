@@ -1,4 +1,3 @@
-using System;
 using Codeo.CQRS.Tests.Models;
 
 namespace Codeo.CQRS.Tests.Queries
