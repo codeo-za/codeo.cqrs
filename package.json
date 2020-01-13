@@ -4,10 +4,10 @@
     "description": "CQRS library with MySql/Dapper backend",
     "main": "gulpfile.js",
     "scripts": {
-        "test": "cross-env BUILD_TOOLS_FOLDER=tools gulp test-dotnet",
+        "test": "run-s \"gulp test-dotnet\"",
         "build": "run-s \"gulp build\"",
-        "gulp": "cross-env BUILD_TOOLS_FOLDER=tools gulp",
-        "release": "cross-env BUILD_TOOLS_FOLDER=tools gulp release"
+        "gulp": "cross-env BUILD_TOOLS_FOLDER=tools DOTNET_CORE=1 gulp",
+        "release": "run-s \"gulp release\""
     },
     "author": "",
     "license": "ISC",
