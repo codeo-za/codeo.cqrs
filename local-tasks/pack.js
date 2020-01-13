@@ -13,7 +13,12 @@ gulp.task("prepare-pack", done => {
     done);
 });
 
+// TODO: convert to using 'pack' from gulp-tasks
 gulp.task("pack", ["prepare-pack"], () => {
+  return doPack();
+});
+
+gulp.task("quick-pack", () => {
   return doPack();
 });
 
@@ -41,14 +46,13 @@ function zeroPad(num) {
 }
 
 async function doPack() {
-  var args = ["pack", "src/Codeo.CQRS/Package.nuspec", "-o", packageDir];
+  var args = ["pack", "src/Codeo.CQRS/Codeo.CQRS.csproj", "-o", packageDir];
   const onPackMasterBranch = await isPackMasterBranch();
   if (!onPackMasterBranch) {
     var sha = await readCurrentShortSha();
     var suffix = `b${timestamp()}-${sha}`;
-    args.push("-Suffix");
+    args.push("--version-suffix");
     args.push(suffix);
   }
-  const nuget = await findLocalNuget();
-  return spawn(nuget, args);
+  return spawn("dotnet", args);
 }
