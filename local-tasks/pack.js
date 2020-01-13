@@ -41,7 +41,7 @@ function zeroPad(num) {
 }
 
 async function doPack() {
-  var args = ["pack", "src/Codeo.CQRS/Package.nuspec", "-OutputDirectory", packageDir];
+  var args = ["pack", "src/Codeo.CQRS/Package.nuspec", "-o", packageDir];
   const onPackMasterBranch = await isPackMasterBranch();
   if (!onPackMasterBranch) {
     var sha = await readCurrentShortSha();
