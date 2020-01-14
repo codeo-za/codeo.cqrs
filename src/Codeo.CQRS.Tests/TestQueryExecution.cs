@@ -562,21 +562,60 @@ namespace Codeo.CQRS.Tests
             }
 
             [TestFixture]
-            public class CacheInvalidation: TestQueryExecution
+            public class WhenSpecifiedCacheKeyPropsNotFound: TestQueryExecution
             {
-                [SetUp]
-                public void Setup()
+                [Test]
+                public void ShouldThrow()
                 {
-                    UseMemoryCache();
-                }
-
-                [TearDown]
-                public void Teardown()
-                {
-                    UseNoCache();
+                    // Arrange
+                    var id = CreatePerson(GetRandomString());
+                    var sut = new FindPersonByIdWithInvalidCacheProp(id);
+                    // Act
+                    Expect(() => QueryExecutor.Execute(sut))
+                        .To.Throw<InvalidCachePropertiesSpecified>()
+                        .With.Message.Containing("BadProp");
+                    // Assert
                 }
             }
 
+            [TestFixture]
+            public class WhenSpecifiedCacheKeyPropsArePrivate: TestQueryExecution
+            {
+                [Test]
+                public void ShouldCacheByThatKey()
+                {
+                    // Arrange
+                    using (new AutoResetter(UseMemoryCache, UseNoCache))
+                    {
+                        var name = "original"; // GetRandomString(10);
+                        var updated = "updated"; // GetAnother(name);
+                        var another = "another person"; //GetAnother<string>(new[] { name, updated });
+                        var id = CreatePerson(name);
+                        var otherId = CreatePerson(another);
+                        var query = new FindPersonByIdWithPrivateCacheProp(id);
+                        // Act
+                        var result1 = QueryExecutor.Execute(query);
+                        UpdatePersonName(id, updated);
+                        var result2 = QueryExecutor.Execute(query);
+                        var result3 = QueryExecutor.Execute(
+                            new FindPersonByIdWithPrivateCacheProp(otherId));
+                        // Assert
+                        // should be updated in the database
+                        Expect(FindPersonById(id).Name)
+                            .To.Equal(updated);
+                        // should have the original value
+                        Expect(result1.Name)
+                            .To.Equal(name);
+                        // should have the cached value
+                        Expect(result2.Name)
+                            .To.Equal(name);
+                        // should not get the cached value for a different id
+                        Expect(result3.Name)
+                            .To.Equal(another);
+                    }
+                }
+            }
+            
             private string NameOfPerson(int id)
             {
                 return QueryExecutor.Execute(

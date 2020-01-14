@@ -111,10 +111,12 @@ namespace Codeo.CQRS
         {
             public DateTime? AbsoluteExpiration { get; }
             public TimeSpan? SlidingExpiration { get; }
-            public bool Enabled => 
-                _enabled && 
+
+            public bool Enabled =>
+                _enabled &&
                 (AbsoluteExpiration.HasValue ||
-                SlidingExpiration.HasValue);
+                    SlidingExpiration.HasValue);
+
             private readonly bool _enabled;
 
 
@@ -201,9 +203,18 @@ namespace Codeo.CQRS
 
         private PropertyInfo[] FindCacheProps()
         {
-            return MyType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            var result = MyType.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                 .Where(pi => MyCacheAttribute.CacheKeyProperties.Contains(pi.Name))
                 .ToArray();
+            var missing = MyCacheAttribute.CacheKeyProperties
+                .Except(result.Select(pi => pi.Name))
+                .ToArray();
+            if (missing.Any())
+            {
+                throw new InvalidCachePropertiesSpecified(missing);
+            }
+
+            return result;
         }
 
         private void SetCache<T>(T result)

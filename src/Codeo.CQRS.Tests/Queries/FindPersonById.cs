@@ -25,7 +25,7 @@ namespace Codeo.CQRS.Tests.Queries
             );
         }
     }
-    
+
     public class FindPersonByIdUncached : Query<Person>
     {
         public int Id { get; }
@@ -40,6 +40,33 @@ namespace Codeo.CQRS.Tests.Queries
             Result = SelectFirst<Person>(
                 "select * from people where id = @id;", new { Id }
             );
+        }
+    }
+
+    [Cache(60, "BadProp")]
+    public class FindPersonByIdWithInvalidCacheProp : SelectQuery<Person>
+    {
+        public FindPersonByIdWithInvalidCacheProp(int id)
+            : base(
+                "select * from people where id = @id;",
+                new { id }
+            )
+        {
+        }
+    }
+    
+    [Cache(60, nameof(Id))]
+    public class FindPersonByIdWithPrivateCacheProp : SelectQuery<Person>
+    {
+        private int Id { get; }
+
+        public FindPersonByIdWithPrivateCacheProp(int id)
+            : base(
+                "select * from people where id = @id;",
+                new { id }
+            )
+        {
+            Id = id;
         }
     }
 }
