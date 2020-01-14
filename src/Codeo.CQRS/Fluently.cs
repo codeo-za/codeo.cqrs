@@ -54,12 +54,6 @@ namespace Codeo.CQRS
                 return this;
             }
 
-            public Configuration WithDefaultCacheImplementation(ICache cache)
-            {
-                BaseSqlExecutor.DefaultCacheImplementation = cache ?? new NoCache();
-                return this;
-            }
-
             public Configuration WithEntitiesFrom(
                 Assembly assembly, 
                 Func<Type, bool> discriminator)

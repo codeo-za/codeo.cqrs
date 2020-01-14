@@ -575,31 +575,6 @@ namespace Codeo.CQRS.Tests
                 {
                     UseNoCache();
                 }
-
-                [Test]
-                public void ShouldInvalidateCacheWhenManuallyInvoked()
-                {
-                    // Arrange
-                    var name = GetRandomString(10);
-                    var updated = GetAnother(name, () => GetRandomString(10));
-                    var id = CreatePerson(name);
-                    // Act
-                    var query1 = new FindPersonById(id);
-                    var originalResult = QueryExecutor.Execute(query1);
-                    // some time later
-                    UpdatePersonName(id, updated);
-                    var shouldBeCached = QueryExecutor.Execute(new FindPersonById(id));
-                    var query2 = new FindPersonById(id);
-                    query2.InvalidateCache();
-                    var shouldBeUpdated = QueryExecutor.Execute(query2);
-                    // Assert
-                    Expect(originalResult.Name)
-                        .To.Equal(name);
-                    Expect(shouldBeCached.Name)
-                        .To.Equal(name);
-                    Expect(shouldBeUpdated.Name)
-                        .To.Equal(updated);
-                }
             }
 
             private string NameOfPerson(int id)
@@ -624,16 +599,16 @@ namespace Codeo.CQRS.Tests
 
             private static void UseNoCache()
             {
-                Fluently.Configure()
-                    .WithDefaultCacheImplementation(new NoCache());
+                var cache = new NoCache();
+                QueryExecutor = new QueryExecutor(cache);
+                CommandExecutor = new CommandExecutor(QueryExecutor, cache);
             }
 
             private static void UseMemoryCache()
             {
-                Fluently.Configure()
-                    .WithDefaultCacheImplementation(
-                        new MemoryCache()
-                    );
+                var cache = new MemoryCache();
+                QueryExecutor = new QueryExecutor(cache);
+                CommandExecutor = new CommandExecutor(QueryExecutor, cache);
             }
         }
 

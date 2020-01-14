@@ -33,11 +33,6 @@ namespace Codeo.CQRS
         private readonly IQueryExecutor _queryExecutor;
         private readonly ICache _cache;
 
-        public CommandExecutor(IQueryExecutor queryExecutor)
-            : this(queryExecutor, BaseSqlExecutor.DefaultCacheImplementation)
-        {
-        }
-
         public CommandExecutor(
             IQueryExecutor queryExecutor,
             ICache cache)
@@ -57,9 +52,9 @@ namespace Codeo.CQRS
                 throw new ArgumentNullException(nameof(command));
             }
 
-            command.QueryExecutor = command.QueryExecutor ?? _queryExecutor;
-            command.CommandExecutor = command.CommandExecutor ?? this;
-            command.Cache = command.Cache ?? _cache;
+            command.QueryExecutor ??= _queryExecutor;
+            command.CommandExecutor ??= this;
+            command.Cache ??= _cache;
             command.Validate();
             command.Execute();
         }
