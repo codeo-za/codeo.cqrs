@@ -396,18 +396,17 @@ namespace Codeo.CQRS
                 EnsureDapperKnowsAbout<TFirst>();
                 EnsureDapperKnowsAbout<TSecond>();
                 EnsureDapperKnowsAbout<TThird>();
-                using (var connection = CreateOpenConnection())
-                {
-                    List<TReturn> Execute(IDbConnection conn)
-                    {
-                        return conn.Query(sql, function, parameters).ToList();
-                    }
+                using var connection = CreateOpenConnection();
 
-                    return SelectRowsOnConnection(
-                        connection,
-                        Execute
-                    );
+                List<TReturn> Execute(IDbConnection conn)
+                {
+                    return conn.Query(sql, function, parameters).ToList();
                 }
+
+                return SelectRowsOnConnection(
+                    connection,
+                    Execute
+                );
             });
         }
 
@@ -618,15 +617,13 @@ namespace Codeo.CQRS
             object parameters)
         {
             EnsureDapperKnowsAbout<T>();
-            using (var connection = CreateOpenConnection())
-            {
-                return RunListResultOnConnection<T>(
-                    operation,
-                    connection,
-                    sql,
-                    parameters
-                );
-            }
+            using var connection = CreateOpenConnection();
+            return RunListResultOnConnection<T>(
+                operation,
+                connection,
+                sql,
+                parameters
+            );
         }
 
         private IEnumerable<T> RunListResultOnConnection<T>(
@@ -657,32 +654,30 @@ namespace Codeo.CQRS
             object parameters)
         {
             EnsureDapperKnowsAbout<T>();
-            using (var connection = CreateOpenConnection())
-            {
-                return RunSingleResultQueryOnConnection(
-                    operation,
-                    connection,
-                    conn =>
+            using var connection = CreateOpenConnection();
+            return RunSingleResultQueryOnConnection(
+                operation,
+                connection,
+                conn =>
+                {
+                    try
                     {
-                        try
+                        return conn.QueryFirst<T>(sql, parameters);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (LooksLikeNoRowsReturned(ex))
                         {
-                            return conn.QueryFirst<T>(sql, parameters);
+                            throw new EntityDoesNotExistException(
+                                typeof(T).Name,
+                                parameters,
+                                ex
+                            );
                         }
-                        catch (Exception ex)
-                        {
-                            if (LooksLikeNoRowsReturned(ex))
-                            {
-                                throw new EntityDoesNotExistException(
-                                    typeof(T).Name,
-                                    parameters,
-                                    ex
-                                );
-                            }
 
-                            throw;
-                        }
-                    });
-            }
+                        throw;
+                    }
+                });
         }
 
         private bool LooksLikeNoRowsReturned(Exception ex)
@@ -715,27 +710,27 @@ namespace Codeo.CQRS
             }
         }
 
-        private int Execute(
+        protected int Execute(
             Operation operation,
             string sql,
-            object parameters)
+            object parameters,
+            int? commandTimeout = null)
         {
-            using (var connection = CreateOpenConnection())
-            {
-                return ExecuteOnConnection(connection, operation, sql, parameters);
-            }
+            using var connection = CreateOpenConnection();
+            return ExecuteOnConnection(connection, operation, sql, parameters, commandTimeout);
         }
 
         private int ExecuteOnConnection(
             IDbConnection connection,
             Operation operation,
             string sql,
-            object parameters
+            object parameters,
+            int? commandTimeout = null
         )
         {
             try
             {
-                return connection.Execute(sql, parameters);
+                return connection.Execute(sql, parameters, commandTimeout: commandTimeout);
             }
             catch (Exception ex)
             {
