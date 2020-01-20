@@ -9,6 +9,7 @@ namespace Codeo.CQRS.Tests
     public class GlobalSetup
     {
         private static TempDBMySql _db;
+        [OneTimeSetUp]
         public static void OneTimeSetup()
         {
             if (_db != null)
@@ -18,10 +19,15 @@ namespace Codeo.CQRS.Tests
             }
 
             _db = new TempDBMySql();
+            PerformDefaultConfiguration();
+            CreateBasicSchemaWith(_db.CreateConnection());
+        }
+
+        public static void PerformDefaultConfiguration()
+        {
             Fluently.Configure()
                     .WithConnectionFactory(new TempDbConnectionFactory(_db))
                     .WithEntitiesFrom(typeof(TestQueryExecution).Assembly);
-            CreateBasicSchemaWith(_db.CreateConnection());
         }
 
         private static void CreateBasicSchemaWith(DbConnection connection)

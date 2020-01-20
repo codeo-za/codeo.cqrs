@@ -23,15 +23,49 @@ namespace Codeo.CQRS
     {
         internal static IDbConnectionFactory ConnectionFactory { get; set; }
 
-        internal static void AddExceptionHandler<T>(
+        internal static void InstallExceptionHandler<T>(
             IExceptionHandler<T> handler) where T : Exception
         {
             var exType = typeof(T);
-            ExceptionHandlers[exType] = (op, ex) => handler.Handle(op, ex as T);
+            lock (ExceptionHandlers)
+            {
+                if (!ExceptionHandlers.TryGetValue(exType, out _))
+                {
+                    ExceptionHandlers[exType] = new List<Tuple<IExceptionHandler, Func<Operation, Exception, bool>>>();
+                }
+
+                ExceptionHandlers[exType].Add(
+                    Tuple.Create<IExceptionHandler, Func<Operation, Exception, bool>>(
+                        handler,
+                        (op, ex) => handler.Handle(op, ex as T)
+                    )
+                );
+                ExceptionHandlerCache.TryRemove(exType, out _);
+            }
         }
 
-        private static readonly Dictionary<Type, Action<Operation, Exception>> ExceptionHandlers
-            = new Dictionary<Type, Action<Operation, Exception>>();
+        internal static void UninstallExceptionHandler<T>(
+            IExceptionHandler<T> handler) where T : Exception
+        {
+            var exType = typeof(T);
+            lock (ExceptionHandlers)
+            {
+                if (!ExceptionHandlers.TryGetValue(exType, out var collection))
+                {
+                    return;
+                }
+
+                collection.RemoveAll(o => o.Item1 == handler);
+                ExceptionHandlerCache.TryRemove(exType, out _);
+            }
+        }
+
+        internal static readonly Dictionary<Type, List<Tuple<IExceptionHandler, Func<Operation, Exception, bool>>>>
+            ExceptionHandlers
+                = new Dictionary<Type, List<Tuple<IExceptionHandler, Func<Operation, Exception, bool>>>>();
+
+        internal static readonly ConcurrentDictionary<Type, Func<Operation, Exception, bool>[]>
+            ExceptionHandlerCache = new ConcurrentDictionary<Type, Func<Operation, Exception, bool>[]>();
 
         public ICache Cache { get; set; }
         public CacheUsage CacheUsage { get; set; } = CacheUsage.Full;
@@ -430,28 +464,46 @@ namespace Codeo.CQRS
             }
         }
 
-        private Action<Operation, Exception> FindHandlerFor(Exception ex)
+        private Func<Operation, Exception, bool>[] FindHandlersFor(Exception ex)
         {
-            if (ExceptionHandlers.TryGetValue(ex.GetType(), out var handler))
+            var exType = ex.GetType();
+            if (ExceptionHandlerCache.TryGetValue(exType, out var cached))
             {
-                return handler;
+                return cached;
             }
+
+            Func<Operation, Exception, bool>[] result = null;
+            lock (ExceptionHandlers)
+            {
+                if (ExceptionHandlers.TryGetValue(ex.GetType(), out var handlers))
+                {
+                    result = handlers
+                        .Select(h => h.Item2)
+                        .ToArray();
+                }
+            }
+
+            result ??= new Func<Operation, Exception, bool>[0];
+            ExceptionHandlerCache.TryAdd(exType, result);
 
             // TODO: try to find derived handler? probably travel all the way up to Exception -- would be useful
             // for the caller to be able to install a generic Exception handler
-            return null;
+            return result;
         }
+
 
         private bool TryHandleException(Operation operation, Exception ex)
         {
-            var handler = FindHandlerFor(ex);
-            if (handler == null)
+            var handlers = FindHandlersFor(ex);
+            foreach (var handler in handlers)
             {
-                return false;
+                if (handler.Invoke(operation, ex))
+                {
+                    return true;
+                }
             }
 
-            handler.Invoke(operation, ex);
-            return true;
+            return false;
         }
 
 
@@ -490,7 +542,12 @@ namespace Codeo.CQRS
             }
             catch (Exception ex)
             {
-                FindHandlerFor(ex)?.Invoke(Operation.Select, ex);
+                if (TryHandleException(Operation.Select, ex))
+                {
+                    return;
+                }
+
+                throw;
             }
         }
 
@@ -716,17 +773,44 @@ namespace Codeo.CQRS
             object parameters,
             int? commandTimeout = null)
         {
-            using var connection = CreateOpenConnection();
-            return ExecuteOnConnection(connection, operation, sql, parameters, commandTimeout);
+            return Execute(
+                operation,
+                sql,
+                parameters,
+                commandTimeout,
+                NoOp
+            );
         }
 
-        private int ExecuteOnConnection(
+        protected int Execute<TException>(
+            Operation operation,
+            string sql,
+            object parameters,
+            int? commandTimeout = null,
+            IExceptionHandler<TException> customExceptionHandler = null
+        ) where TException : Exception
+        {
+            using var connection = CreateOpenConnection();
+            return ExecuteOnConnection(
+                connection,
+                operation,
+                sql,
+                parameters,
+                commandTimeout,
+                customExceptionHandler
+            );
+        }
+
+        private static readonly IExceptionHandler<Exception> NoOp = null;
+
+        private int ExecuteOnConnection<TException>(
             IDbConnection connection,
             Operation operation,
             string sql,
             object parameters,
-            int? commandTimeout = null
-        )
+            int? commandTimeout = null,
+            IExceptionHandler<TException> customExceptionHandler = null
+        ) where TException : Exception
         {
             try
             {
@@ -734,12 +818,20 @@ namespace Codeo.CQRS
             }
             catch (Exception ex)
             {
+                if (ex is TException handledException)
+                {
+                    if (customExceptionHandler?.Handle(operation, handledException) ?? false)
+                    {
+                        return default;
+                    }
+                }
+
                 if (!TryHandleException(operation, ex))
                 {
                     throw;
                 }
 
-                return default(int);
+                return default;
             }
         }
 
@@ -753,6 +845,11 @@ namespace Codeo.CQRS
             }
 
             Fluently.Configuration.MapEntityType(type);
+        }
+
+        public static void RemoveAllExceptionHandlers()
+        {
+            ExceptionHandlers.Clear();
         }
     }
 }

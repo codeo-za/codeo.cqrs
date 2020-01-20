@@ -3,8 +3,12 @@ using Codeo.CQRS.Exceptions;
 
 namespace Codeo.CQRS
 {
-    public interface IExceptionHandler<in T> where T: Exception
+    public interface IExceptionHandler
     {
-        void Handle(Operation operation, T exception);
+    }
+
+    public interface IExceptionHandler<in T>: IExceptionHandler where T: Exception
+    {
+        bool Handle(Operation operation, T exception);
     }
 }

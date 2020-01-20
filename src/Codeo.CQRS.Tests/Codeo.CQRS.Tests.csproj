@@ -25,5 +25,5 @@
     <ProjectReference Include="..\Codeo.CQRS\Codeo.CQRS.csproj" />
   </ItemGroup>
 
-  <Import Project="..\MonoForFramework.targets"/>
+  <Import Project="..\MonoForFramework.targets" />
 </Project>

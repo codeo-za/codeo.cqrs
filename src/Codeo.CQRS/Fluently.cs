@@ -20,11 +20,27 @@ namespace Codeo.CQRS
             {
             }
 
-            public Configuration WithExceptionHandler<TException>(
-                IExceptionHandler<TException> handler) 
-                where TException: Exception
+            public Configuration Reset()
             {
-                BaseSqlExecutor.AddExceptionHandler(handler);
+                BaseSqlExecutor.RemoveAllExceptionHandlers();
+                BaseSqlExecutor.ConnectionFactory = null;
+                EntityDoesNotExistException.DebugEnabled = false;
+                return this;
+            }
+
+            public Configuration WithExceptionHandler<TException>(
+                IExceptionHandler<TException> handler)
+                where TException : Exception
+            {
+                BaseSqlExecutor.InstallExceptionHandler(handler);
+                return this;
+            }
+
+            public Configuration WithoutExceptionHandler<TException>(
+                IExceptionHandler<TException> handler)
+                where TException : Exception
+            {
+                BaseSqlExecutor.UninstallExceptionHandler(handler);
                 return this;
             }
 
@@ -32,7 +48,7 @@ namespace Codeo.CQRS
             {
                 var entityType = typeof(IEntity);
                 return WithEntitiesFrom(
-                    assembly, 
+                    assembly,
                     x => entityType.IsAssignableFrom(x) && x != entityType);
             }
 
@@ -55,7 +71,7 @@ namespace Codeo.CQRS
             }
 
             public Configuration WithEntitiesFrom(
-                Assembly assembly, 
+                Assembly assembly,
                 Func<Type, bool> discriminator)
             {
                 var entityTypes = assembly.GetTypes().Where(discriminator);
@@ -83,6 +99,7 @@ namespace Codeo.CQRS
                         // may have been added between the start of this call and now
                         return;
                     }
+
                     SqlMapper.SetTypeMap(type, Map(type));
                     BaseSqlExecutor.KnownMappedTypes.TryAdd(type, true);
                 }

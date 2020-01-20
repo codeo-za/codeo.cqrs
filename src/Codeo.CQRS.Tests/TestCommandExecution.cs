@@ -78,13 +78,11 @@ namespace Codeo.CQRS.Tests
             {
                 // Arrange
                 var cmd = new ShouldTimeout();
-                var cache = new NoCache();
-                var executor = new CommandExecutor(new QueryExecutor(cache), cache);
                 var threwSocketException = false;
                 // Act
                 try
                 {
-                    executor.Execute(cmd);
+                    CommandExecutor.Execute(cmd);
                 }
                 catch (MySqlException ex)
                 {
@@ -98,16 +96,67 @@ namespace Codeo.CQRS.Tests
                         }
                     }
                 }
+
                 // Assert
                 Expect(threwSocketException).To.Be.True();
+            }
+
+            [Test]
+            public void ShouldBeAbleToProviderOnceOffExceptionHandler()
+            {
+                // Arrange
+                var handler = new CustomHandler();
+                var cmd = new ShouldTimeout(handler);
+                // Act
+                Expect(() => CommandExecutor.Execute(cmd))
+                    .Not.To.Throw();
+                // Assert
+                Expect(handler.CaughtException)
+                    .Not.To.Be.Null();
+                Expect(handler.HandledOperation)
+                    .To.Equal(Operation.Insert);
+            }
+
+            private static readonly ICache NoCache = new NoCache();
+
+            private static readonly ICommandExecutor CommandExecutor
+                = new CommandExecutor(
+                    new QueryExecutor(
+                        NoCache
+                    ), NoCache);
+
+            public class CustomHandler : IExceptionHandler<MySqlException>
+            {
+                public MySqlException CaughtException { get; set; }
+                public Operation? HandledOperation { get; set; }
+
+                public bool Handle(
+                    Operation operation,
+                    MySqlException exception)
+                {
+                    HandledOperation = operation;
+                    CaughtException = exception;
+                    return true;
+                }
             }
         }
 
         public class ShouldTimeout : Command<int>
         {
+            private readonly IExceptionHandler<MySqlException> _customHandler;
+
+            public ShouldTimeout()
+            {
+            }
+
+            public ShouldTimeout(IExceptionHandler<MySqlException> customHandler)
+            {
+                _customHandler = customHandler;
+            }
+
             public override void Execute()
             {
-                Result = Execute(Operation.Insert, "select sleep(2);", null, 1);
+                Result = Execute(Operation.Insert, "select sleep(2);", null, 1, _customHandler);
             }
         }
 
