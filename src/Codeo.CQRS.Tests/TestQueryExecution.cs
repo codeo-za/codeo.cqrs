@@ -216,7 +216,44 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class TestGenericUpdateCommand : TestQueryExecution
+        public class ProvidingMultipleFilters: TestQueryExecution
+        {
+            [Test]
+            public void ShouldBeAbleToProvideMultipleFilters()
+            {
+                // Arrange
+                var name = GetRandomString(10, 20);
+                var id = CreatePerson(name);
+                var qry = new FindPersonByNameAndId(name, id);
+                // Act
+                var result = QueryExecutor.Execute(qry);
+                // Assert
+                Expect(result)
+                    .Not.To.Be.Null();
+                Expect(result.Id)
+                    .To.Equal(id);
+                Expect(result.Name)
+                    .To.Equal(name);
+            }
+
+            public class FindPersonByNameAndId : SelectQuery<Person>
+            {
+                public FindPersonByNameAndId(
+                    string name,
+                    int id
+                ) : base(
+                    "select * from people /**where**/",
+                    ("id = @id", new { id }),
+                    ("name = @name", new { name })
+                )
+                {
+                }
+            }
+        }
+
+
+        [TestFixture]
+        public class TestUpdateCommand : TestQueryExecution
         {
             [Test]
             public void ShouldUpdate()
@@ -235,7 +272,7 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class TestGenericDeleteCommand : TestQueryExecution
+        public class TestDeleteCommand : TestQueryExecution
         {
             [Test]
             public void ShouldDelete()
@@ -562,7 +599,7 @@ namespace Codeo.CQRS.Tests
             }
 
             [TestFixture]
-            public class WhenSpecifiedCacheKeyPropsNotFound: TestQueryExecution
+            public class WhenSpecifiedCacheKeyPropsNotFound : TestQueryExecution
             {
                 [Test]
                 public void ShouldThrow()
@@ -579,7 +616,7 @@ namespace Codeo.CQRS.Tests
             }
 
             [TestFixture]
-            public class WhenSpecifiedCacheKeyPropsArePrivate: TestQueryExecution
+            public class WhenSpecifiedCacheKeyPropsArePrivate : TestQueryExecution
             {
                 [Test]
                 public void ShouldCacheByThatKey()
@@ -615,7 +652,7 @@ namespace Codeo.CQRS.Tests
                     }
                 }
             }
-            
+
             private string NameOfPerson(int id)
             {
                 return QueryExecutor.Execute(

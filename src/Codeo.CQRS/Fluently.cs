@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Reflection;
-using Codeo.CQRS.Caching;
 using Codeo.CQRS.Exceptions;
 using Dapper;
 

@@ -19,6 +19,7 @@
     <PackageReference Include="PeanutButter.TempDb.MySql" Version="1.2.274" />
     <PackageReference Include="PeanutButter.Utils" Version="1.2.274" />
     <PackageReference Include="System.Runtime.Caching" Version="4.7.0" />
+    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
   </ItemGroup>
 
   <ItemGroup>

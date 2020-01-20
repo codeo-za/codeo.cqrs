@@ -76,7 +76,7 @@ namespace Codeo.CQRS
             Cache.Remove(cacheKey);
         }
 
-        private T Through<T>(Func<T> generator)
+        protected T Through<T>(Func<T> generator)
         {
             switch (CacheUsage)
             {
