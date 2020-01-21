@@ -26,12 +26,6 @@ namespace Codeo.CQRS
         private readonly object _parameters;
 
         protected SelectQuery(
-            string sql
-        ) : this(sql, null)
-        {
-        }
-
-        protected SelectQuery(
             string sql,
             object parameters)
         {
