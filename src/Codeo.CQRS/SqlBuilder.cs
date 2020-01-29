@@ -56,10 +56,10 @@ namespace Codeo.CQRS
 
         public class Template
         {
-            readonly string _sql;
-            readonly SqlBuilder _builder;
-            readonly object _initParams;
-            int _dataSeq = -1; // Unresolved
+            private readonly string _sql;
+            private readonly SqlBuilder _builder;
+            private readonly object _initParams;
+            private int _dataSeq = -1; // Unresolved
 
             public Template(SqlBuilder builder, string sql, object parameters)
             {
@@ -68,7 +68,7 @@ namespace Codeo.CQRS
                 _builder = builder;
             }
 
-            static System.Text.RegularExpressions.Regex _regex =
+            private static readonly System.Text.RegularExpressions.Regex FindMarkerRegex =
                 new System.Text.RegularExpressions.Regex(@"\/\*\*.+\*\*\/",
                     System.Text.RegularExpressions.RegexOptions.Compiled |
                     System.Text.RegularExpressions.RegexOptions.Multiline);
@@ -89,14 +89,14 @@ namespace Codeo.CQRS
                     _parameters = p;
 
                     // replace all that is left with empty
-                    _rawSql = _regex.Replace(_rawSql, "");
+                    _rawSql = FindMarkerRegex.Replace(_rawSql, "");
 
                     _dataSeq = _builder._seq;
                 }
             }
 
-            string _rawSql;
-            DynamicParameters _parameters;
+            private string _rawSql;
+            private DynamicParameters _parameters;
 
             public string RawSql
             {

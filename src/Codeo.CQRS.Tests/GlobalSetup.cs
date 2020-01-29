@@ -9,7 +9,6 @@ namespace Codeo.CQRS.Tests
     public class GlobalSetup
     {
         private static TempDBMySql _db;
-        [OneTimeSetUp]
         public static void OneTimeSetup()
         {
             if (_db != null)
