@@ -1,10 +1,18 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Dapper;
+// ReSharper disable UnusedMember.Local
+// ReSharper disable UnusedMethodReturnValue.Local
+// ReSharper disable UnusedMember.Global
+// ReSharper disable UnusedMethodReturnValue.Global
+// ReSharper disable MemberCanBePrivate.Local
+// ReSharper disable AutoPropertyCanBeMadeGetOnly.Local
 
 namespace Codeo.CQRS
 {
     /// <summary>
+    /// original credits:
     /// https://github.com/StackExchange/dapper-dot-net/blob/master/Dapper.SqlBuilder/SqlBuilder.cs
     /// </summary>
     public class SqlBuilder
@@ -12,11 +20,21 @@ namespace Codeo.CQRS
         Dictionary<string, Clauses> _data = new Dictionary<string, Clauses>();
         int _seq;
 
-        class Clause
+        private class Clause
         {
             public string Sql { get; set; }
             public object Parameters { get; set; }
             public bool IsInclusive { get; set; }
+
+            public Clause(
+                string sql,
+                object parameters,
+                bool isInclusive)
+            {
+                Sql = sql;
+                Parameters = parameters;
+                IsInclusive = isInclusive;
+            }
         }
 
         class Clauses : List<Clause>
@@ -117,17 +135,15 @@ namespace Codeo.CQRS
             }
         }
 
-
-        public SqlBuilder()
-        {
-        }
-
-        public Template AddTemplate(string sql, object parameters = null)
+        public Template AddTemplate(
+            string sql, 
+            object parameters = null)
         {
             return new Template(this, sql, parameters);
         }
 
-        SqlBuilder AddClause(string name,
+        private SqlBuilder AddClause(
+            string name,
             string sql,
             object parameters,
             string joiner,
@@ -135,17 +151,25 @@ namespace Codeo.CQRS
             string postfix = "",
             bool isInclusive = false)
         {
-            Clauses clauses;
-            if (!_data.TryGetValue(name, out clauses))
+            if (!_data.TryGetValue(name, out var clauses))
             {
                 clauses = new Clauses(joiner, prefix, postfix);
                 _data[name] = clauses;
             }
 
-            clauses.Add(new Clause { Sql = sql, Parameters = parameters, IsInclusive = isInclusive });
+            clauses.Add(new Clause(sql, parameters, isInclusive));
             _seq++;
             return this;
         }
+
+        private ClauseBuilder AddClause(string name)
+        {
+            return new ClauseBuilder(
+                this,
+                name
+            );
+        }
+
 
         public SqlBuilder Intersect(string sql, object parameters = null)
         {
@@ -212,12 +236,120 @@ namespace Codeo.CQRS
 
         public SqlBuilder Limit(int limit)
         {
-            return AddClause("limit", limit.ToString(), null, joiner: "\n", prefix: "LIMIT ", postfix: "\n");
+            return AddClause("limit")
+                .WithSql(limit.ToString())
+                .WithPrefix("LIMIT ")
+                .Configure();
         }
 
         public SqlBuilder NoLimit()
         {
-            return AddClause("limit", "", null, joiner: "", prefix: "", postfix: "");
+            return RemoveClause("limit");
+        }
+
+        public SqlBuilder Offset(int offset)
+        {
+            return AddClause("offset")
+                .WithSql(offset.ToString())
+                .WithPrefix("OFFSET ")
+                .Configure();
+        }
+
+        public SqlBuilder NoOffset()
+        {
+            return RemoveClause("offset");
+        }
+
+        private SqlBuilder RemoveClause(string name)
+        {
+            _data.Remove(name);
+            return this;
+        }
+        
+        private class ClauseBuilder
+        {
+            private readonly SqlBuilder _parent;
+
+            private readonly List<Action<ClauseData>> _transforms
+                = new List<Action<ClauseData>>();
+
+            private class ClauseData
+            {
+                public string Name { get; set; }
+                public string Joiner { get; set; }
+                public string Prefix { get; set; }
+                public string PostFix { get; set; }
+                public object Parameters { get; set; }
+                public string Sql { get; set; }
+                public bool IsInclusive { get; set; }
+            }
+
+            public ClauseBuilder(
+                SqlBuilder parent,
+                string name
+            )
+            {
+                _parent = parent;
+                With(o => o.Name = name)
+                    .WithPrefix("")
+                    .WithPostfix("");
+            }
+
+            public ClauseBuilder WithJoiner(string joiner)
+            {
+                return With(o => o.Joiner = joiner);
+            }
+
+            private ClauseBuilder With(Action<ClauseData> transform)
+            {
+                _transforms.Add(transform);
+                return this;
+            }
+
+            public ClauseBuilder WithPrefix(string prefix)
+            {
+                return With(o => o.Prefix = prefix);
+            }
+
+            public ClauseBuilder WithPostfix(string postfix)
+            {
+                return With(o => o.PostFix = postfix);
+            }
+
+            public ClauseBuilder WithSql(string sql)
+            {
+                return With(o => o.Sql = sql);
+            }
+
+            public ClauseBuilder WithParameters(object parameters)
+            {
+                return With(o => o.Parameters = parameters);
+            }
+
+            public ClauseBuilder AsInclusive()
+            {
+                return With(o => o.IsInclusive = true);
+            }
+
+            public ClauseBuilder AsExclusive()
+            {
+                return With(o => o.IsInclusive = false);
+            }
+
+            public SqlBuilder Configure()
+            {
+                var data = new ClauseData();
+                _transforms.ForEach(t => t(data));
+                return _parent.AddClause(
+                    data.Name,
+                    data.Sql,
+                    data.Parameters,
+                    data.Joiner,
+                    data.Prefix,
+                    data.PostFix,
+                    data.IsInclusive
+                );
+            }
         }
     }
 }

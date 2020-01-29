@@ -1,80 +1,102 @@
-using System;
-using System.Linq;
-using System.Text.RegularExpressions;
 using NUnit.Framework;
 using static PeanutButter.RandomGenerators.RandomValueGen;
-using NExpect;
-using NExpect.Interfaces;
-using NExpect.MatcherLogic;
-using PeanutButter.Utils;
 using static NExpect.Expectations;
 
 namespace Codeo.CQRS.Tests
 {
+    [TestFixture]
     public class SqlBuilderTests
     {
-        [Test]
-        public void Limit()
+        [TestFixture]
+        public class Limit
         {
-            // Arrange
-            var limit = GetRandomInt(1, 10);
-            var (template, builder) = Create("select * from foo /**limit**/;");
-            var expected = $"select * from foo limit {limit};";
-            // Act
-            builder.Limit(limit);
-            var result = template.RawSql;
-            // Assert
-            Expect(result)
-                .To.Match(expected);
+            [Test]
+            public void ShouldAddWhenLimitProvided()
+            {
+                // Arrange
+                var limit = GetRandomInt();
+                var (template, builder) = Create("select * from foo /**limit**/;");
+                var expected = $"select * from foo limit {limit};";
+                // Act
+                builder.Limit(limit);
+                var result = template.RawSql;
+                // Assert
+                Expect(result)
+                    .To.Match(expected);
+            }
+
+            [Test]
+            public void ShouldRemoveWhenNoLimit()
+            {
+                // Arrange
+                var (template, builder) = Create("select * from foo /**limit**/;");
+                var expected = "select * from foo;";
+                // Act
+                builder.Limit(GetRandomInt(1));
+                builder.NoLimit();
+                var result = template.RawSql;
+                // Assert
+                Expect(result)
+                    .To.Match(expected);
+            }
         }
+
+        [TestFixture]
+        public class Offset
+        {
+            [Test]
+            public void ShouldAddOffsetWhenProvided()
+            {
+                // Arrange
+                var offset = GetRandomInt();
+                var (template, builder) = Create("select * from foo /**offset**/;");
+                var expected = $"select * from foo offset {offset};";
+                // Act
+                builder.Offset(offset);
+                var result = template.RawSql;
+                // Assert
+                Expect(result)
+                    .To.Match(expected);
+            }
+
+            [Test]
+            public void ShouldRemoveWhenNoOffset()
+            {
+                // Arrange
+                var (template, builder) = Create("select * from foo /**offset**/;");
+                var expected = $"select * from foo;";
+                // Act
+                builder.Offset(GetRandomInt(1));
+                builder.NoOffset();
+                var result = template.RawSql;
+                // Assert
+                Expect(result)
+                    .To.Match(expected);
+            }
+
+            [Test]
+            public void ShouldRemoveWhenNotConfigured()
+            {
+                // Arrange
+                var (template, builder) = Create("select * from foo /**offset**/;");
+                var expected = $"select * from foo;";
+                // Act
+                var result = template.RawSql;
+                // Assert
+                Expect(result)
+                    .To.Match(expected);
+            }
+        }
+        
+        // TODO: get the rest of SqlBuilder under test
+        // TODO: convert the rest of SqlBuilder to the more fluent syntax
+        //       which is easier on the reader
 
         private static (SqlBuilder.Template, SqlBuilder builder) Create(
             string query)
         {
             var builder = new SqlBuilder();
             return (builder.AddTemplate(query), builder);
-        }
-    }
-
-    public static class StringMatchers
-    {
-        public static IMore<string> Match(
-            this ITo<string> to,
-            string expected)
-        {
-            // sql testing shouldn't care about case or (too much) about
-            // whitespace -- all whitespace is equal
-            return to.AddMatcher(actual =>
-            {
-                var normalisedActual = Normalise(actual);
-                var normalisedExpected = Normalise(expected);
-                var passed = normalisedActual == normalisedExpected;
-                return new MatcherResult(
-                    passed,
-                    () => $@"Expected\n{
-                            actual
-                        }\nto match (normalised)\n{
-                            expected
-                        }\n\nnormalised values:\nactual:\n{
-                            normalisedActual
-                        }\nexpected:\n{
-                            normalisedExpected
-                        }"
-                );
-            });
-        }
-
-        private static readonly Regex WordBoundaries = new Regex("\\b");
-
-        private static string Normalise(string sql)
-        {
-            return string.Join(
-                " ",
-                WordBoundaries.Split(sql)
-                    .Select(w => w.Trim())
-                    .Where(w => w != "")
-                    .ToArray()
-            ).ToLowerInvariant();
         }
     }
 }
