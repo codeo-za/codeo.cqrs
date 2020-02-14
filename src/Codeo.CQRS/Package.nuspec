@@ -6,11 +6,10 @@
     <owners>Codeo</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Database-engine-agnostic implementation of the Command Query Responsibility Separation pattern</description>
-    <releaseNotes>&#xD;&#xD;&#xD;
-        Initial release as a package&#xD;&#xD;&#xD;
+    <releaseNotes>
     </releaseNotes>
     <copyright>Copyright 2019</copyright>
-    <tags>SPAR API single sign-on</tags>
+    <tags>CQRS data-access</tags>
     <dependencies>
       <group targetFramework="netstandard2.0">
         <dependency id="Newtonsoft.Json" version="12.0.0"/>
