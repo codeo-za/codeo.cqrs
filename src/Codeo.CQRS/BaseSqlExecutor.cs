@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -81,7 +82,9 @@ namespace Codeo.CQRS
             switch (CacheUsage)
             {
                 case CacheUsage.Bypass:
+                {
                     return generator();
+                }
                 case CacheUsage.WriteOnly:
                 {
                     var result = generator();
@@ -227,8 +230,34 @@ namespace Codeo.CQRS
 
         private string PropertyKeyFor(PropertyInfo cur)
         {
-            return $"{cur.Name}:{cur.GetValue(this)}";
+            return cur.PropertyType.ImplementsEnumerableGenericType()
+                ? $"{cur.Name}::{GenerateEnumerableKeyPartFor(cur.PropertyType, cur.GetValue(this))}"
+                : $"{cur.Name}:{cur.GetValue(this)}";
         }
+
+        private string GenerateEnumerableKeyPartFor(
+            Type propertyType, 
+            object collection)
+        {
+            if (collection is null)
+            {
+                return "(null)";
+            }
+            var itemType = propertyType.GetCollectionItemType();
+            var method = CollectionToListGenericMethod.MakeGenericMethod(itemType);
+            return method.Invoke(null, new object[] { collection, "," }) as string;
+        }
+
+        private static string CollectionToList<T>(
+            IEnumerable<T> collection,
+            string delimiter)
+        {
+            return string.Join(delimiter, collection);
+        }
+        
+        private static readonly MethodInfo CollectionToListGenericMethod
+            = typeof(BaseSqlExecutor)
+                .GetMethod(nameof(CollectionToList), BindingFlags.Static | BindingFlags.NonPublic);
 
         private PropertyInfo[] CacheProps =>
             _cacheProps ??= FindCacheProps();

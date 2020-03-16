@@ -216,7 +216,7 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class ProvidingMultipleFilters: TestQueryExecution
+        public class ProvidingMultipleFilters : TestQueryExecution
         {
             [Test]
             public void ShouldBeAbleToProvideMultipleFilters()
@@ -420,6 +420,25 @@ namespace Codeo.CQRS.Tests
                                 () => $"Should have expired the cached item and retrieved new name: {newName}");
                     }
                 }
+
+                [Test]
+                public void CollectionPropertiesInCacheKeysShouldIncludeAllValues()
+                {
+                    // Arrange
+                    var ids = GetRandomCollection<int>(2, 4);
+                    var qry = new FindPeopleByIds(ids);
+                    var expected = @$"{
+                            nameof(FindPeopleByIds)
+                        }-Ids::{
+                            string.Join(",", qry.Ids)
+                        }";
+                    // Act
+                    var result = qry.GenerateCacheKeyForTesting();
+                    // Assert
+                    Expect(result)
+                        .To.Equal(expected);
+                }
+                
             }
 
             [TestFixture]
