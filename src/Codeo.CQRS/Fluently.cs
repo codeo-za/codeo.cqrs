@@ -17,6 +17,21 @@ namespace Codeo.CQRS
         {
             internal Configuration()
             {
+                WithSnakeCaseMappingEnabled();
+            }
+
+            public Configuration WithSnakeCaseMappingEnabled()
+            {
+                DefaultTypeMap.MatchNamesWithUnderscores = true;
+                RemapAllKnownEntities();
+                return this;
+            }
+
+            public Configuration WithSnakeCaseMappingDisabled()
+            {
+                DefaultTypeMap.MatchNamesWithUnderscores = false;
+                RemapAllKnownEntities();
+                return this;
             }
 
             public Configuration Reset()
@@ -87,6 +102,19 @@ namespace Codeo.CQRS
                 return this;
             }
 
+            public static void RemapAllKnownEntities()
+            {
+                lock (MapLock)
+                {
+                    var types = BaseSqlExecutor.KnownMappedTypes.Keys.ToArray();
+                    BaseSqlExecutor.KnownMappedTypes.Clear();
+                    foreach (var type in types)
+                    {
+                        MapEntityType(type);
+                    }
+                }
+            }
+
             private static readonly object MapLock = new object();
 
             public static void MapEntityType(Type type)
@@ -103,18 +131,25 @@ namespace Codeo.CQRS
                     BaseSqlExecutor.KnownMappedTypes.TryAdd(type, true);
                 }
             }
-
+            
             private static CustomPropertyTypeMap Map(Type eType)
             {
                 return new CustomPropertyTypeMap(
                     eType,
                     (type, column) =>
                     {
-                        var cleanedColumnName = column.Replace("_", "");
+                        var columnName = 
+                            DefaultTypeMap.MatchNamesWithUnderscores
+                            ? column.Replace("_", "")
+                            : column;
                         var mappedProperty =
                             type.GetProperties()
                                 .FirstOrDefault(
-                                    x => x.Name.Equals(cleanedColumnName, StringComparison.OrdinalIgnoreCase));
+                                    x => x.Name.Equals(
+                                        columnName,
+                                        StringComparison.OrdinalIgnoreCase
+                                    )
+                                );
 
                         return mappedProperty;
                     }

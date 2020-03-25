@@ -1,3 +1,5 @@
+using System;
+using System.Data;
 using System.Data.Common;
 using Dapper;
 using NUnit.Framework;
@@ -9,6 +11,7 @@ namespace Codeo.CQRS.Tests
     public class GlobalSetup
     {
         private static TempDBMySql _db;
+
         public static void OneTimeSetup()
         {
             if (_db != null)
@@ -25,8 +28,8 @@ namespace Codeo.CQRS.Tests
         public static void PerformDefaultConfiguration()
         {
             Fluently.Configure()
-                    .WithConnectionFactory(new TempDbConnectionFactory(_db))
-                    .WithEntitiesFrom(typeof(TestQueryExecution).Assembly);
+                .WithConnectionFactory(new TempDbConnectionFactory(_db))
+                .WithEntitiesFrom(typeof(TestQueryExecution).Assembly);
         }
 
         private static void CreateBasicSchemaWith(DbConnection connection)
@@ -39,7 +42,8 @@ create table people(
   date_of_birth datetime null,
   created datetime);
 ");
-            connection.Query("insert into people(name, date_of_birth, enabled, created) values ('Carl Sagan', '1934/11/09', 1,  CURRENT_TIMESTAMP);");
+            connection.Query(
+                "insert into people(name, date_of_birth, enabled, created) values ('Carl Sagan', '1934/11/09', 1,  CURRENT_TIMESTAMP);");
         }
 
         [OneTimeTearDown]
@@ -47,6 +51,15 @@ create table people(
         {
             _db?.Dispose();
             _db = null;
+        }
+
+        public static IDbConnection ConnectToTempDb()
+        {
+            return _db?.CreateConnection() ??
+                throw new InvalidOperationException(
+                    $"TempDb is not set up"
+                );
+            ;
         }
     }
 
