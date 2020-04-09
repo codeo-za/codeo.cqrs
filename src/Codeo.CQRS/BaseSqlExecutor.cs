@@ -236,13 +236,14 @@ namespace Codeo.CQRS
         }
 
         private string GenerateEnumerableKeyPartFor(
-            Type propertyType, 
+            Type propertyType,
             object collection)
         {
             if (collection is null)
             {
                 return "(null)";
             }
+
             var itemType = propertyType.GetCollectionItemType();
             var method = CollectionToListGenericMethod.MakeGenericMethod(itemType);
             return method.Invoke(null, new object[] { collection, "," }) as string;
@@ -254,7 +255,7 @@ namespace Codeo.CQRS
         {
             return string.Join(delimiter, collection);
         }
-        
+
         private static readonly MethodInfo CollectionToListGenericMethod
             = typeof(BaseSqlExecutor)
                 .GetMethod(nameof(CollectionToList), BindingFlags.Static | BindingFlags.NonPublic);
@@ -371,8 +372,8 @@ namespace Codeo.CQRS
         {
             return SelectMulti<TFirst, TSecond, TReturn>(
                 sql,
-                function,
-                null);
+                null,
+                function);
         }
 
         /// <summary>
@@ -387,8 +388,8 @@ namespace Codeo.CQRS
         /// <returns></returns>
         public IEnumerable<TReturn> SelectMulti<TFirst, TSecond, TReturn>(
             string sql,
-            Func<TFirst, TSecond, TReturn> function,
-            object parameters)
+            object parameters,
+            Func<TFirst, TSecond, TReturn> function)
         {
             return Through(() =>
             {
@@ -405,17 +406,234 @@ namespace Codeo.CQRS
             });
         }
 
-        private IDbConnection CreateOpenConnection()
+        /// <summary>
+        /// Performs a one-to-many select query across tables joined
+        /// by an integer id
+        /// </summary>
+        /// <param name="sql">select statement to run</param>
+        /// <param name="idFinder">function to find the id off of a primary item</param>
+        /// <param name="collectionFinder">function to find the collection on the primary item</param>
+        /// <typeparam name="TPrimary">type of the primary item</typeparam>
+        /// <typeparam name="TSecondary">type of the secondary item</typeparam>
+        /// <returns></returns>
+        public IEnumerable<TPrimary> SelectOneToMany<TPrimary, TSecondary>(
+            string sql,
+            Func<TPrimary, int> idFinder,
+            Func<TPrimary, IList<TSecondary>> collectionFinder)
         {
-            var result = ConnectionFactory?.Create()
-                ?? throw new InvalidOperationException(
-                    "Please configure a ConnectionFactory to provide new instances of IDbConnection per call to Create()");
-            ;
-            if (result.State != ConnectionState.Open)
-            {
-                result.Open();
-            }
+            return SelectOneToMany(
+                sql,
+                null,
+                idFinder,
+                collectionFinder
+            );
+        }
 
+        /// <summary>
+        /// Performs a one-to-many select query across tables joined
+        /// by an integer id
+        /// </summary>
+        /// <param name="sql">select statement to run</param>
+        /// <param name="parameters">parameters for the sql statement</param>
+        /// <param name="idFinder">function to find the id off of a primary item</param>
+        /// <param name="collectionFinder">function to find the collection on the primary item</param>
+        /// <typeparam name="TPrimary">type of the primary item</typeparam>
+        /// <typeparam name="TSecondary">type of the secondary item</typeparam>
+        /// <returns></returns>
+        public IEnumerable<TPrimary> SelectOneToMany<TPrimary, TSecondary>(
+            string sql,
+            object parameters,
+            Func<TPrimary, int> idFinder,
+            Func<TPrimary, IList<TSecondary>> collectionFinder)
+        {
+            return SelectOneToMany<TPrimary, TSecondary, int>(
+                sql,
+                parameters,
+                idFinder,
+                collectionFinder
+            );
+        }
+
+        /// <summary>
+        /// Performs a one-to-many select query across tables joined
+        /// by an id of type TId
+        /// </summary>
+        /// <param name="sql">select statement to run</param>
+        /// <param name="idFinder">function to find the id off of a primary item</param>
+        /// <param name="collectionFinder">function to find the collection on the primary item</param>
+        /// <typeparam name="TPrimary">type of the primary item</typeparam>
+        /// <typeparam name="TSecondary">type of the secondary item</typeparam>
+        /// <returns></returns>
+        public IEnumerable<TPrimary> SelectOneToMany<TPrimary, TSecondary, TId>(
+            string sql,
+            Func<TPrimary, TId> idFinder,
+            Func<TPrimary, IList<TSecondary>> collectionFinder
+        )
+        {
+            return SelectOneToMany(
+                sql,
+                null,
+                idFinder,
+                collectionFinder
+            );
+        }
+
+        /// <summary>
+        /// Performs a one-to-many select query across tables joined
+        /// by an id of type TId
+        /// </summary>
+        /// <param name="sql">select statement to run</param>
+        /// <param name="parameters">parameters for the sql statement</param>
+        /// <param name="idFinder">function to find the id off of a primary item</param>
+        /// <param name="collectionFinder">function to find the collection on the primary item</param>
+        /// <typeparam name="TPrimary">type of the primary item</typeparam>
+        /// <typeparam name="TSecondary">type of the secondary item</typeparam>
+        /// <typeparam name="TId">Type of the identifier on TPrimary</typeparam>
+        /// <returns></returns>
+        public IEnumerable<TPrimary> SelectOneToMany<TPrimary, TSecondary, TId>(
+            string sql,
+            object parameters,
+            Func<TPrimary, TId> idFinder,
+            Func<TPrimary, IList<TSecondary>> collectionFinder
+        )
+        {
+            return SelectOneToMany(
+                sql,
+                parameters,
+                idFinder,
+                collectionFinder,
+                o => o
+            );
+        }
+
+        /// <summary>
+        /// Performs a one-to-many select query across tables joined
+        /// by an integer id where the final result is a composite type
+        /// </summary>
+        /// <param name="sql">select statement to run</param>
+        /// <param name="idFinder">function to find the id off of a primary item</param>
+        /// <param name="collectionFinder">function to find the collection on the primary item</param>
+        /// <param name="returnFactory">factory to create objects of the final return type based on the primary type</param>
+        /// <typeparam name="TPrimary">type of the primary item</typeparam>
+        /// <typeparam name="TSecondary">type of the secondary item</typeparam>
+        /// <typeparam name="TReturn"></typeparam>
+        /// <returns></returns>
+        public IEnumerable<TReturn> SelectOneToMany<TPrimary, TSecondary, TReturn>(
+            string sql,
+            Func<TPrimary, int> idFinder,
+            Func<TReturn, IList<TSecondary>> collectionFinder,
+            Func<TPrimary, TReturn> returnFactory
+        )
+        {
+            return SelectOneToMany(
+                sql,
+                null,
+                idFinder,
+                collectionFinder,
+                returnFactory
+            );
+        }
+
+        /// <summary>
+        /// Performs a one-to-many select query across tables joined
+        /// by an integer id where the final result is a composite type
+        /// </summary>
+        /// <param name="sql">select statement to run</param>
+        /// <param name="parameters">parameters for the sql statement</param>
+        /// <param name="idFinder">function to find the id off of a primary item</param>
+        /// <param name="collectionFinder">function to find the collection on the primary item</param>
+        /// <param name="returnFactory">factory to create objects of the final return type based on the primary type</param>
+        /// <typeparam name="TPrimary">type of the primary item</typeparam>
+        /// <typeparam name="TSecondary">type of the secondary item</typeparam>
+        /// <typeparam name="TReturn"></typeparam>
+        /// <returns></returns>
+        public IEnumerable<TReturn> SelectOneToMany<TPrimary, TSecondary, TReturn>(
+            string sql,
+            object parameters,
+            Func<TPrimary, int> idFinder,
+            Func<TReturn, IList<TSecondary>> collectionFinder,
+            Func<TPrimary, TReturn> returnFactory
+        )
+        {
+            return SelectOneToMany<TPrimary, TSecondary, TReturn, int>(
+                sql,
+                parameters,
+                idFinder,
+                collectionFinder,
+                returnFactory
+            );
+        }
+
+        /// <summary>
+        /// Performs a one-to-many select query across tables joined
+        /// by an id of type TId where the final result is a composite type
+        /// </summary>
+        /// <param name="sql">select statement to run</param>
+        /// <param name="idFinder">function to find the id off of a primary item</param>
+        /// <param name="collectionFinder">function to find the collection on the primary item</param>
+        /// <param name="returnFactory">factory to create objects of the final return type based on the primary type</param>
+        /// <typeparam name="TPrimary">type of the primary item</typeparam>
+        /// <typeparam name="TSecondary">type of the secondary item</typeparam>
+        /// <typeparam name="TReturn"></typeparam>
+        /// <returns></returns>
+        public IEnumerable<TReturn> SelectOneToMany<TPrimary, TSecondary, TReturn, TId>(
+            string sql,
+            Func<TPrimary, TId> idFinder,
+            Func<TReturn, IList<TSecondary>> collectionFinder,
+            Func<TPrimary, TReturn> returnFactory
+        )
+        {
+            return SelectOneToMany(
+                sql,
+                null,
+                idFinder,
+                collectionFinder,
+                returnFactory
+            );
+        }
+
+        /// <summary>
+        /// Performs a one-to-many select query across tables joined
+        /// by an id of type TId where the final result is a composite type
+        /// </summary>
+        /// <param name="sql">select statement to run</param>
+        /// <param name="parameters">parameters for the sql statement</param>
+        /// <param name="idFinder">function to find the id off of a primary item</param>
+        /// <param name="collectionFinder">function to find the collection on the primary item</param>
+        /// <param name="returnFactory">factory to create objects of the final return type based on the primary type</param>
+        /// <typeparam name="TPrimary">type of the primary item</typeparam>
+        /// <typeparam name="TSecondary">type of the secondary item</typeparam>
+        /// <typeparam name="TReturn"></typeparam>
+        /// <returns></returns>
+        public IEnumerable<TReturn> SelectOneToMany<TPrimary, TSecondary, TReturn, TId>(
+            string sql,
+            object parameters,
+            Func<TPrimary, TId> idFinder,
+            Func<TReturn, IList<TSecondary>> collectionFinder,
+            Func<TPrimary, TReturn> returnFactory)
+        {
+            var allResults = SelectMulti<TPrimary, TSecondary, ValueTuple<TPrimary, TSecondary>>(
+                sql,
+                parameters,
+                (one, many) => (one, many)
+            );
+            var lookup = new Dictionary<TId, TReturn>();
+            var result = allResults.Aggregate(
+                new List<TReturn>(),
+                (acc, cur) =>
+                {
+                    var id = idFinder(cur.Item1);
+                    if (!lookup.TryGetValue(id, out var returnItem))
+                    {
+                        returnItem = returnFactory(cur.Item1);
+                        lookup[id] = returnItem;
+                        acc.Add(returnItem);
+                    }
+
+                    var collection = collectionFinder(returnItem);
+                    collection.Add(cur.Item2);
+                    return acc;
+                });
             return result;
         }
 
@@ -878,7 +1096,24 @@ namespace Codeo.CQRS
 
         public static void RemoveAllExceptionHandlers()
         {
-            ExceptionHandlers.Clear();
+            lock (ExceptionHandlers)
+            {
+                ExceptionHandlers.Clear();
+            }
+        }
+
+        private IDbConnection CreateOpenConnection()
+        {
+            var result = ConnectionFactory?.Create()
+                ?? throw new InvalidOperationException(
+                    "Please configure a ConnectionFactory to provide new instances of IDbConnection per call to Create()");
+            ;
+            if (result.State != ConnectionState.Open)
+            {
+                result.Open();
+            }
+
+            return result;
         }
     }
 }

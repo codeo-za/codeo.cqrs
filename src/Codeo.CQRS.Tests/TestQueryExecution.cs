@@ -106,10 +106,13 @@ namespace Codeo.CQRS.Tests
                 var results = queryExecutor.Execute(query);
                 // Assert
                 Expect(results).Not.To.Be.Null();
-                Expect(results).To.Contain.Exactly(1).Item();
+                Expect(results)
+                    .To.Contain.Exactly(1).Item();
                 var result = results.First();
-                Expect(result.Name).To.Equal("Carl Sagan");
-                Expect(result.DateOfBirth).To.Equal(new DateTime(1934, 11, 9, 0, 0, 0, DateTimeKind.Utc));
+                Expect(result.Name)
+                    .To.Equal("Carl Sagan");
+                Expect(result.DateOfBirth)
+                    .To.Equal(new DateTime(1934, 11, 9, 0, 0, 0, DateTimeKind.Utc));
             }
         }
 
