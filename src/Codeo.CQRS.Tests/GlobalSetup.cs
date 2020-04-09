@@ -41,6 +41,20 @@ create table people(
   enabled bit,
   date_of_birth datetime null,
   created datetime);
+create table departments(
+  id integer not null primary key auto_increment,
+  name tinytext
+);
+create table departments_people(
+    id integer not null primary key auto_increment,
+    person_id int not null,
+    department_id int not null
+);
+create table department_tags(
+    id integer not null primary key auto_increment,
+    department_id int not null,
+    tag tinytext not null
+);
 ");
             connection.Query(
                 "insert into people(name, date_of_birth, enabled, created) values ('Carl Sagan', '1934/11/09', 1,  CURRENT_TIMESTAMP);");
