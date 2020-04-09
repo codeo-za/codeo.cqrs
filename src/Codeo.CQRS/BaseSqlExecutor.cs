@@ -21,6 +21,12 @@ namespace Codeo.CQRS
 
     public abstract class BaseSqlExecutor
     {
+        /// <summary>
+        /// Default column to split Multi&lt;&gt; query results on.
+        /// see: https://github.com/StackExchange/Dapper#multi-mapping
+        /// </summary>
+        public const string DEFAULT_SPLIT_ON_COLUMN = "Id";
+
         internal static IDbConnectionFactory ConnectionFactory { get; set; }
 
         internal static void InstallExceptionHandler<T>(
@@ -374,7 +380,7 @@ namespace Codeo.CQRS
             Func<TFirst, TSecond, TReturn> function)
 
         {
-            return SelectMulti<TFirst, TSecond, TReturn>(
+            return SelectMulti(
                 sql,
                 null,
                 function);
@@ -395,6 +401,31 @@ namespace Codeo.CQRS
             object parameters,
             Func<TFirst, TSecond, TReturn> function)
         {
+            return SelectMulti(
+                sql,
+                parameters,
+                function,
+                DEFAULT_SPLIT_ON_COLUMN
+            );
+        }
+
+        /// <summary>
+        /// Selects multiple results from a horizontally joined query result. (2 Types)
+        /// </summary>
+        /// <typeparam name="TFirst">The type of the first result object.</typeparam>
+        /// <typeparam name="TSecond">The type of the second result object.</typeparam>
+        /// <typeparam name="TReturn">The type of the returned result object.</typeparam>
+        /// <param name="sql">The SQL query</param>
+        /// <param name="function">The function on how to handle the returned results</param>
+        /// <param name="parameters">The parameters.</param>
+        /// <param name="splitOn">Sets the name of the column to split type mappings at - other members default this to "Id"</param>
+        /// <returns></returns>
+        public IEnumerable<TReturn> SelectMulti<TFirst, TSecond, TReturn>(
+            string sql,
+            object parameters,
+            Func<TFirst, TSecond, TReturn> function,
+            string splitOn)
+        {
             return Through(() =>
             {
                 EnsureDapperKnowsAbout<TFirst>();
@@ -403,7 +434,12 @@ namespace Codeo.CQRS
 
                 List<TReturn> Execute(IDbConnection conn)
                 {
-                    return conn.Query(sql, function, parameters).ToList();
+                    return conn.Query(
+                        sql,
+                        function,
+                        parameters,
+                        splitOn: splitOn
+                    ).ToList();
                 }
 
                 return SelectRowsOnConnection(connection, Execute);
@@ -616,6 +652,37 @@ namespace Codeo.CQRS
             Func<TReturn, IList<TSecondary>> collectionFinder,
             Func<TPrimary, TReturn> returnFactory)
         {
+            return SelectOneToMany(
+                sql,
+                parameters,
+                idFinder,
+                collectionFinder,
+                returnFactory,
+                DEFAULT_SPLIT_ON_COLUMN
+            );
+        }
+
+        /// <summary>
+        /// Performs a one-to-many select query across tables joined
+        /// by an id of type TId where the final result is a composite type
+        /// </summary>
+        /// <param name="sql">select statement to run</param>
+        /// <param name="parameters">parameters for the sql statement</param>
+        /// <param name="idFinder">function to find the id off of a primary item</param>
+        /// <param name="collectionFinder">function to find the collection on the primary item</param>
+        /// <param name="returnFactory">factory to create objects of the final return type based on the primary type</param>
+        /// <typeparam name="TPrimary">type of the primary item</typeparam>
+        /// <typeparam name="TSecondary">type of the secondary item</typeparam>
+        /// <typeparam name="TReturn"></typeparam>
+        /// <returns></returns>
+        public IEnumerable<TReturn> SelectOneToMany<TPrimary, TSecondary, TReturn, TId>(
+            string sql,
+            object parameters,
+            Func<TPrimary, TId> idFinder,
+            Func<TReturn, IList<TSecondary>> collectionFinder,
+            Func<TPrimary, TReturn> returnFactory,
+            string splitOn)
+        {
             var allResults = SelectMulti<TPrimary, TSecondary, ValueTuple<TPrimary, TSecondary>>(
                 sql,
                 parameters,
@@ -654,10 +721,10 @@ namespace Codeo.CQRS
             string sql,
             Func<TFirst, TSecond, TThird, TReturn> function)
         {
-            return SelectMulti<TFirst, TSecond, TThird, TReturn>(
+            return SelectMulti(
                 sql,
-                function,
-                null);
+                null,
+                function);
         }
 
         /// <summary>
@@ -675,6 +742,32 @@ namespace Codeo.CQRS
             string sql,
             object parameters,
             Func<TFirst, TSecond, TThird, TReturn> function)
+        {
+            return SelectMulti(
+                sql,
+                parameters,
+                function,
+                DEFAULT_SPLIT_ON_COLUMN
+            );
+        }
+
+        /// <summary>
+        /// Selects multiple results from a horizontally joined query result. (3 Types)
+        /// </summary>
+        /// <typeparam name="TFirst">The type of the first result object.</typeparam>
+        /// <typeparam name="TSecond">The type of the second result object.</typeparam>
+        /// <typeparam name="TThird">The type of the third result object.</typeparam>
+        /// <typeparam name="TReturn">The type of the returned result object.</typeparam>
+        /// <param name="sql">The SQL query</param>
+        /// <param name="function">The function on how to handle the returned results</param>
+        /// <param name="parameters">The parameters.</param>
+        /// <param name="splitOn">Sets the name of the column to split type mappings at - other members default this to "Id"</param>
+        /// <returns></returns>
+        public IEnumerable<TReturn> SelectMulti<TFirst, TSecond, TThird, TReturn>(
+            string sql,
+            object parameters,
+            Func<TFirst, TSecond, TThird, TReturn> function,
+            string splitOn)
         {
             return Through(() =>
             {
@@ -755,7 +848,7 @@ namespace Codeo.CQRS
 
             return handlers.Aggregate(
                 false,
-                (acc, cur) => 
+                (acc, cur) =>
                     // throw if any handler says so
                     acc || cur.Invoke(operation, ex) == ExceptionHandlingStrategy.Throw
             );
@@ -1009,6 +1102,7 @@ namespace Codeo.CQRS
                         {
                             throw;
                         }
+
                         return default;
                     }
                 });
@@ -1095,7 +1189,7 @@ namespace Codeo.CQRS
             }
             catch (Exception ex)
             {
-                if (!(customExceptionHandler is null) && 
+                if (!(customExceptionHandler is null) &&
                     ex is TException handledException)
                 {
                     var customHandlerResult = customExceptionHandler.Handle(
