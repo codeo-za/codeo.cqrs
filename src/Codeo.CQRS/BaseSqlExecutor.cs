@@ -31,7 +31,7 @@ namespace Codeo.CQRS
             {
                 if (!ExceptionHandlers.TryGetValue(exType, out _))
                 {
-                    ExceptionHandlers[exType] = 
+                    ExceptionHandlers[exType] =
                         new List<Tuple<IExceptionHandler, Func<Operation, Exception, ExceptionHandlingStrategy>>>();
                 }
 
@@ -57,6 +57,7 @@ namespace Codeo.CQRS
                 }
 
                 collection.RemoveAll(o => o.Item1 == handler);
+                ExceptionHandlers[exType] = collection;
                 ExceptionHandlerCache.TryRemove(exType, out _);
             }
         }
@@ -68,7 +69,8 @@ namespace Codeo.CQRS
                     List<Tuple<IExceptionHandler, Func<Operation, Exception, ExceptionHandlingStrategy>>>>();
 
         internal static readonly ConcurrentDictionary<Type, Func<Operation, Exception, ExceptionHandlingStrategy>[]>
-            ExceptionHandlerCache = new ConcurrentDictionary<Type, Func<Operation, Exception, ExceptionHandlingStrategy>[]>();
+            ExceptionHandlerCache =
+                new ConcurrentDictionary<Type, Func<Operation, Exception, ExceptionHandlingStrategy>[]>();
 
         public ICache Cache { get; set; }
         public CacheUsage CacheUsage { get; set; } = CacheUsage.Full;
@@ -704,7 +706,7 @@ namespace Codeo.CQRS
             }
             catch (Exception ex)
             {
-                if (!ShouldThrowFor(Operation.Select, ex))
+                if (ShouldThrowFor(Operation.Select, ex))
                 {
                     throw;
                 }
@@ -713,7 +715,9 @@ namespace Codeo.CQRS
             }
         }
 
-        private Func<Operation, Exception, ExceptionHandlingStrategy>[] FindHandlersFor(Exception ex)
+        private Func<Operation, Exception, ExceptionHandlingStrategy>[] FindHandlersFor(
+            Exception ex
+        )
         {
             var exType = ex.GetType();
             if (ExceptionHandlerCache.TryGetValue(exType, out var cached))
@@ -744,15 +748,17 @@ namespace Codeo.CQRS
         private bool ShouldThrowFor(Operation operation, Exception ex)
         {
             var handlers = FindHandlersFor(ex);
-            foreach (var handler in handlers)
+            if (!handlers.Any())
             {
-                if (handler.Invoke(operation, ex) != ExceptionHandlingStrategy.Suppress)
-                {
-                    return true;
-                }
+                return true; // throw by default
             }
 
-            return false;
+            return handlers.Aggregate(
+                false,
+                (acc, cur) => 
+                    // throw if any handler says so
+                    acc || cur.Invoke(operation, ex) == ExceptionHandlingStrategy.Throw
+            );
         }
 
 
@@ -999,7 +1005,11 @@ namespace Codeo.CQRS
                             );
                         }
 
-                        throw;
+                        if (ShouldThrowFor(operation, ex))
+                        {
+                            throw;
+                        }
+                        return default;
                     }
                 });
         }
@@ -1025,7 +1035,7 @@ namespace Codeo.CQRS
             }
             catch (Exception ex)
             {
-                if (!ShouldThrowFor(operation, ex))
+                if (ShouldThrowFor(operation, ex))
                 {
                     throw;
                 }
@@ -1085,15 +1095,20 @@ namespace Codeo.CQRS
             }
             catch (Exception ex)
             {
-                if (ex is TException handledException)
+                if (!(customExceptionHandler is null) && 
+                    ex is TException handledException)
                 {
-                    if (ShouldThrowFor(operation, handledException))
+                    var customHandlerResult = customExceptionHandler.Handle(
+                        operation,
+                        handledException
+                    );
+                    if (customHandlerResult == ExceptionHandlingStrategy.Suppress)
                     {
                         return default;
                     }
                 }
 
-                if (!ShouldThrowFor(operation, ex))
+                if (ShouldThrowFor(operation, ex))
                 {
                     throw;
                 }

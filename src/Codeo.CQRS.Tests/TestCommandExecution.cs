@@ -136,7 +136,7 @@ namespace Codeo.CQRS.Tests
                 {
                     HandledOperation = operation;
                     CaughtException = exception;
-                    return ExceptionHandlingStrategy.Throw;
+                    return ExceptionHandlingStrategy.Suppress;
                 }
             }
         }
