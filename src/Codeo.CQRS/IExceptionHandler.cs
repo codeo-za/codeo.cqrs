@@ -7,8 +7,14 @@ namespace Codeo.CQRS
     {
     }
 
+    public enum ExceptionHandlingStrategy
+    {
+        Throw,
+        Suppress
+    }
+
     public interface IExceptionHandler<in T>: IExceptionHandler where T: Exception
     {
-        bool Handle(Operation operation, T exception);
+        ExceptionHandlingStrategy Handle(Operation operation, T exception);
     }
 }

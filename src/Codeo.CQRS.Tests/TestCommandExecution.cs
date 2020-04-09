@@ -130,13 +130,13 @@ namespace Codeo.CQRS.Tests
                 public MySqlException CaughtException { get; set; }
                 public Operation? HandledOperation { get; set; }
 
-                public bool Handle(
+                public ExceptionHandlingStrategy Handle(
                     Operation operation,
                     MySqlException exception)
                 {
                     HandledOperation = operation;
                     CaughtException = exception;
-                    return true;
+                    return ExceptionHandlingStrategy.Throw;
                 }
             }
         }

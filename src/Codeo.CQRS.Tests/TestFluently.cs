@@ -57,12 +57,12 @@ namespace Codeo.CQRS.Tests
             }
         }
 
-        public class MySqlExceptionHandler : IExceptionHandler<MySqlException>
+        public class SuppressingMySqlExceptionHandler : IExceptionHandler<MySqlException>
         {
-            public bool Handle(Operation operation, MySqlException exception)
+            public ExceptionHandlingStrategy Handle(Operation operation, MySqlException exception)
             {
                 // suppress the error
-                return true;
+                return ExceptionHandlingStrategy.Suppress;
             }
         }
 
@@ -72,7 +72,7 @@ namespace Codeo.CQRS.Tests
             // Arrange
             GlobalSetup.PerformDefaultConfiguration();
             var faultyQuery = new GenericSelectQuery<int>("select count(*) from table_which_does_not_exist;");
-            var handler = new MySqlExceptionHandler();
+            var handler = new SuppressingMySqlExceptionHandler();
             // Act
             Fluently.Configure()
                 .WithExceptionHandler(handler);
@@ -92,7 +92,7 @@ namespace Codeo.CQRS.Tests
             var faultyQuery = new GenericSelectQuery<int>(
                 "select count(*) from table_which_does_not_exist;"
             );
-            var handler = new MySqlExceptionHandler();
+            var handler = new SuppressingMySqlExceptionHandler();
             // Act
             Fluently.Configure()
                 .WithExceptionHandler(handler);

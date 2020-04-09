@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -32,11 +31,12 @@ namespace Codeo.CQRS
             {
                 if (!ExceptionHandlers.TryGetValue(exType, out _))
                 {
-                    ExceptionHandlers[exType] = new List<Tuple<IExceptionHandler, Func<Operation, Exception, bool>>>();
+                    ExceptionHandlers[exType] = 
+                        new List<Tuple<IExceptionHandler, Func<Operation, Exception, ExceptionHandlingStrategy>>>();
                 }
 
                 ExceptionHandlers[exType].Add(
-                    Tuple.Create<IExceptionHandler, Func<Operation, Exception, bool>>(
+                    Tuple.Create<IExceptionHandler, Func<Operation, Exception, ExceptionHandlingStrategy>>(
                         handler,
                         (op, ex) => handler.Handle(op, ex as T)
                     )
@@ -61,12 +61,14 @@ namespace Codeo.CQRS
             }
         }
 
-        internal static readonly Dictionary<Type, List<Tuple<IExceptionHandler, Func<Operation, Exception, bool>>>>
+        internal static readonly Dictionary<Type,
+                List<Tuple<IExceptionHandler, Func<Operation, Exception, ExceptionHandlingStrategy>>>>
             ExceptionHandlers
-                = new Dictionary<Type, List<Tuple<IExceptionHandler, Func<Operation, Exception, bool>>>>();
+                = new Dictionary<Type,
+                    List<Tuple<IExceptionHandler, Func<Operation, Exception, ExceptionHandlingStrategy>>>>();
 
-        internal static readonly ConcurrentDictionary<Type, Func<Operation, Exception, bool>[]>
-            ExceptionHandlerCache = new ConcurrentDictionary<Type, Func<Operation, Exception, bool>[]>();
+        internal static readonly ConcurrentDictionary<Type, Func<Operation, Exception, ExceptionHandlingStrategy>[]>
+            ExceptionHandlerCache = new ConcurrentDictionary<Type, Func<Operation, Exception, ExceptionHandlingStrategy>[]>();
 
         public ICache Cache { get; set; }
         public CacheUsage CacheUsage { get; set; } = CacheUsage.Full;
@@ -702,7 +704,7 @@ namespace Codeo.CQRS
             }
             catch (Exception ex)
             {
-                if (!TryHandleException(Operation.Select, ex))
+                if (!ShouldThrowFor(Operation.Select, ex))
                 {
                     throw;
                 }
@@ -711,7 +713,7 @@ namespace Codeo.CQRS
             }
         }
 
-        private Func<Operation, Exception, bool>[] FindHandlersFor(Exception ex)
+        private Func<Operation, Exception, ExceptionHandlingStrategy>[] FindHandlersFor(Exception ex)
         {
             var exType = ex.GetType();
             if (ExceptionHandlerCache.TryGetValue(exType, out var cached))
@@ -719,7 +721,7 @@ namespace Codeo.CQRS
                 return cached;
             }
 
-            Func<Operation, Exception, bool>[] result = null;
+            Func<Operation, Exception, ExceptionHandlingStrategy>[] result = null;
             lock (ExceptionHandlers)
             {
                 if (ExceptionHandlers.TryGetValue(ex.GetType(), out var handlers))
@@ -730,7 +732,7 @@ namespace Codeo.CQRS
                 }
             }
 
-            result ??= new Func<Operation, Exception, bool>[0];
+            result ??= new Func<Operation, Exception, ExceptionHandlingStrategy>[0];
             ExceptionHandlerCache.TryAdd(exType, result);
 
             // TODO: try to find derived handler? probably travel all the way up to Exception -- would be useful
@@ -739,12 +741,12 @@ namespace Codeo.CQRS
         }
 
 
-        private bool TryHandleException(Operation operation, Exception ex)
+        private bool ShouldThrowFor(Operation operation, Exception ex)
         {
             var handlers = FindHandlersFor(ex);
             foreach (var handler in handlers)
             {
-                if (handler.Invoke(operation, ex))
+                if (handler.Invoke(operation, ex) != ExceptionHandlingStrategy.Suppress)
                 {
                     return true;
                 }
@@ -807,7 +809,7 @@ namespace Codeo.CQRS
             }
             catch (Exception ex)
             {
-                if (TryHandleException(Operation.Select, ex))
+                if (ShouldThrowFor(Operation.Select, ex))
                 {
                     return;
                 }
@@ -961,7 +963,7 @@ namespace Codeo.CQRS
             }
             catch (Exception ex)
             {
-                if (!TryHandleException(operation, ex))
+                if (!ShouldThrowFor(operation, ex))
                 {
                     throw;
                 }
@@ -1023,7 +1025,7 @@ namespace Codeo.CQRS
             }
             catch (Exception ex)
             {
-                if (!TryHandleException(operation, ex))
+                if (!ShouldThrowFor(operation, ex))
                 {
                     throw;
                 }
@@ -1085,13 +1087,13 @@ namespace Codeo.CQRS
             {
                 if (ex is TException handledException)
                 {
-                    if (customExceptionHandler?.Handle(operation, handledException) ?? false)
+                    if (ShouldThrowFor(operation, handledException))
                     {
                         return default;
                     }
                 }
 
-                if (!TryHandleException(operation, ex))
+                if (!ShouldThrowFor(operation, ex))
                 {
                     throw;
                 }
