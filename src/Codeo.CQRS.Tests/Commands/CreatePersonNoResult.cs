@@ -2,9 +2,8 @@ using System;
 
 namespace Codeo.CQRS.Tests.Commands
 {
-    // cache attributes should be ignored for inserts!
     [Cache(60, nameof(Name), nameof(Enabled))]
-    public class CreatePerson : InsertCommand<int>
+    public class CreatePersonNoResult : InsertCommand
     {
         public string Name { get; }
         public bool Enabled { get; }
@@ -12,14 +11,13 @@ namespace Codeo.CQRS.Tests.Commands
         private const string sql = @"
             insert into people (name, enabled, created)
             values (@name, @enabled, @created);
-            select last_insert_id() as id;
             ";
 
-        public CreatePerson(string name) : this(name, true)
+        public CreatePersonNoResult(string name) : this(name, true)
         {
         }
 
-        public CreatePerson(string name, bool enabled)
+        public CreatePersonNoResult(string name, bool enabled)
             : base(sql, new
             {
                 name,

@@ -669,8 +669,8 @@ namespace Codeo.CQRS
         /// <returns></returns>
         public IEnumerable<TReturn> SelectMulti<TFirst, TSecond, TThird, TReturn>(
             string sql,
-            Func<TFirst, TSecond, TThird, TReturn> function,
-            object parameters)
+            object parameters,
+            Func<TFirst, TSecond, TThird, TReturn> function)
         {
             return Through(() =>
             {
@@ -755,7 +755,25 @@ namespace Codeo.CQRS
 
 
         /// <summary>
-        /// Selects multiple results from a vertically joined query result. (multiple select statements)
+        /// Used to map results from a query which returns multiple
+        /// result sets, ie multiple select statements
+        /// </summary>
+        /// <param name="sql">The SQL query.</param>
+        /// <param name="callback">The callback action on how to handle the results.</param>
+        public void SelectMulti(
+            string sql,
+            Action<SqlMapper.GridReader> callback)
+        {
+            SelectMulti(
+                sql,
+                null,
+                callback
+            );
+        }
+
+        /// <summary>
+        /// Used to map results from a query which returns multiple
+        /// result sets, ie multiple select statements
         /// </summary>
         /// <param name="sql">The SQL query.</param>
         /// <param name="parameters">The parameters.</param>

@@ -120,7 +120,7 @@ namespace Codeo.CQRS.Tests
         public class WhenQueryingWithJoinsRequiringPerRowMapping : TestQueryExecution
         {
             [Test]
-            public void ShouldBeAbleToQueryAcrossTwoJoins()
+            public void ShouldBeAbleToQueryAcrossTwoIncludedTables()
             {
                 // Arrange
                 var departmentName1 = GetRandomString(5);
@@ -146,6 +146,108 @@ namespace Codeo.CQRS.Tests
                 var departments = FindDepartmentsById(departmentId1, departmentId2);
                 Expect(result.Departments)
                     .To.Be.Deep.Equivalent.To(departments);
+            }
+
+            [Test]
+            public void ShouldBeAbleToQueryAcrossThreeIncludedTables()
+            {
+                // Arrange
+                var departmentName1 = GetRandomString(5);
+                var departmentId1 = CreateDepartment(departmentName1);
+                var departmentName2 = GetRandomString(5);
+                var departmentId2 = CreateDepartment(departmentName2);
+                var personName = GetRandomString(5);
+                var personId = CreatePerson(personName);
+                AssociatePersonWithDepartment(personId, departmentId1);
+                AssociatePersonWithDepartment(personId, departmentId2);
+                var dept1Tags = FindTagsById(new[]
+                {
+                    CreateTagForDepartment(departmentId1, GetRandomString(5)),
+                    CreateTagForDepartment(departmentId1, GetRandomString(5)),
+                });
+                var dept2Tags = FindTagsById(new[]
+                {
+                    CreateTagForDepartment(departmentId2, GetRandomString(5)),
+                    CreateTagForDepartment(departmentId2, GetRandomString(5)),
+                });
+                // Act
+                var result = QueryExecutor.Execute(
+                    new FindPersonWithDepartmentsAndTags(
+                        personId
+                    )
+                );
+                // Assert
+                Expect(result)
+                    .Not.To.Be.Null();
+                var person = FindPersonById(personId);
+                Expect(result)
+                    .To.Intersection.Equal(person);
+                var departments = FindDepartmentsById(
+                    departmentId1,
+                    departmentId2
+                );
+                Expect(result.Departments.Select(d => d as Department))
+                    .To.Be.Intersection.Equivalent.To(departments);
+                var dept1 = result.Departments.Single(d => d.Id == departmentId1);
+                Expect(dept1.Tags)
+                    .To.Be.Intersection.Equivalent.To(dept1Tags);
+                var dept2 = result.Departments.Single(d => d.Id == departmentId2);
+                Expect(dept2.Tags)
+                    .To.Be.Intersection.Equivalent.To(dept2Tags);
+            }
+
+            private DepartmentTag[] FindTagsById(int[] ids)
+            {
+                return QueryExecutor.Execute(
+                    new FindTagsById(
+                        ids
+                    )
+                ).ToArray();
+            }
+
+            private int CreateTagForDepartment(
+                int departmentId,
+                string tag)
+            {
+                return CommandExecutor.Execute(
+                    new CreateTagForDepartment(
+                        departmentId,
+                        tag
+                    )
+                );
+            }
+        }
+
+        [TestFixture]
+        public class WhenQueryingWithMultipleResultSets : TestQueryExecution
+        {
+            [Test]
+            public void ShouldBeAbleToUseAllResultSets()
+            {
+                // Arrange
+                var personName = GetRandomString(5);
+                var personId = CreatePerson(personName);
+                var departmentName = GetRandomString(5);
+                var departmentId = CreateDepartment(departmentName);
+                // Act
+                var result = QueryExecutor.Execute(
+                    new FindAllPeopleAndDepartments()
+                );
+                // Assert
+                // result likely has more than just the entities
+                //    created in this test -- which is OK
+                Expect(result.People)
+                    .Not.To.Be.Empty();
+                var person = FindPersonById(personId);
+                Expect(result.People)
+                    .To.Contain.Exactly(1)
+                    .Deep.Equal.To(person);
+                Expect(result.Departments)
+                    .Not.To.Be.Empty();
+                var department = FindDepartmentsById(departmentId).Single();
+                Expect(result.Departments)
+                    .To.Contain.Exactly(1)
+                    .Deep.Equal.To(department);
             }
         }
 

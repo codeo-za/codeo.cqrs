@@ -47,10 +47,10 @@ create table departments(
 );
 create table departments_people(
     id integer not null primary key auto_increment,
-    person_id int not null,
-    department_id int not null
+    department_id int not null,
+    person_id int not null
 );
-create table department_tags(
+create table departments_tags(
     id integer not null primary key auto_increment,
     department_id int not null,
     tag tinytext not null
