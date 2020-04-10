@@ -2,7 +2,6 @@ const gulp = requireModule("gulp-with-help"),
   packageDir = require("./config").packageDir,
   runSequence = requireModule("run-sequence"),
   isPackMasterBranch = require("./modules/is-pack-master-branch"),
-  findLocalNuget = requireModule("find-local-nuget"),
   git = require("simple-git/promise"),
   spawn = requireModule("spawn");
 

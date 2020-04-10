@@ -8,6 +8,13 @@ namespace Codeo.CQRS
     /// </summary>
     public class InvalidCachePropertiesSpecified : Exception
     {
+        private const string HelpfulHint = @"
+For members to be considered for cache keys, they must be:
+- properties
+- on the instance (no statics)
+- any access modifier (public, protected, private, internal)
+  - but prefer public, read-only props: testing later will be easier
+";
         public InvalidCachePropertiesSpecified(
             params string[] propertyNames
         ) : base(
@@ -22,7 +29,7 @@ namespace Codeo.CQRS
                     (propertyNames.Length == 1 ? "" : "s")
                 } not found: {
                     string.Join(", ", propertyNames)
-                }";
+                }{HelpfulHint}";
         }
     }
 }

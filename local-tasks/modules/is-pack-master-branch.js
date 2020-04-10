@@ -10,7 +10,7 @@ env.register({
 module.exports = async function isPackMasterBranch() {
   const
     current = await readCurrentBranch(),
-    master = env.resolve("PACK_MASTER");
-  return master === current;
+    packMaster = env.resolve("PACK_MASTER");
+  return packMaster === current;
 }
 

@@ -1,3 +1,6 @@
+using System;
+using Codeo.CQRS.Exceptions;
+
 namespace Codeo.CQRS
 {
     /// <summary>
@@ -42,7 +45,17 @@ namespace Codeo.CQRS
 
         public sealed override void Execute()
         {
-            Result = InsertGetFirst<T>(_sql, _parameters ?? new { });
+            try
+            {
+                Result = InsertGetFirst<T>(_sql, _parameters ?? new { });
+            }
+            catch (EntityDoesNotExistException ex)
+            {
+                throw new InvalidOperationException(
+                    $"Unable to InsertGetFirst for {GetType()}. Perhaps you forget to select the last inserted id in your query:\n{_sql}",
+                    ex
+                );
+            }
         }
     }
 }

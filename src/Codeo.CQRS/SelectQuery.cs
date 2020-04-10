@@ -21,14 +21,9 @@ namespace Codeo.CQRS
     /// <typeparam name="T"></typeparam>
     public abstract class SelectQuery<T> : Query<T>
     {
-        private readonly SingleSelectNoResultStrategies _noResultStrategy;
+        private readonly SingleSelectNoResultStrategies _noResultStrategy = SingleSelectNoResultStrategies.Throw;
         private readonly string _sql;
         private readonly object _parameters;
-
-        protected SelectQuery(
-            string sql) : this(sql, null)
-        {
-        }
 
         protected SelectQuery(
             string sql,
@@ -36,6 +31,30 @@ namespace Codeo.CQRS
         {
             _sql = sql;
             _parameters = parameters;
+        }
+
+        protected SelectQuery(
+            string sql,
+            params (string filterSql, object filterParams)[] filters
+            ): this(sql, SingleSelectNoResultStrategies.Throw, filters)
+        {
+        }
+
+        protected SelectQuery(
+            string sql,
+            SingleSelectNoResultStrategies noResultStrategy,
+            params (string filterSql, object filterParams)[] filters)
+        {
+            _noResultStrategy = noResultStrategy;
+            
+            var builder = new SqlBuilder();
+            var template = builder.AddTemplate(sql);
+            foreach (var filter in filters)
+            {
+                builder.Where(filter.filterSql, filter.filterParams);
+            }
+            _sql = template.RawSql;
+            _parameters = template.Parameters;
         }
 
         protected SelectQuery(

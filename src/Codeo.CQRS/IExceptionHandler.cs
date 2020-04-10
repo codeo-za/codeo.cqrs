@@ -3,8 +3,18 @@ using Codeo.CQRS.Exceptions;
 
 namespace Codeo.CQRS
 {
-    public interface IExceptionHandler<in T> where T: Exception
+    public interface IExceptionHandler
     {
-        void Handle(Operation operation, T exception);
+    }
+
+    public enum ExceptionHandlingStrategy
+    {
+        Throw,
+        Suppress
+    }
+
+    public interface IExceptionHandler<in T>: IExceptionHandler where T: Exception
+    {
+        ExceptionHandlingStrategy Handle(Operation operation, T exception);
     }
 }

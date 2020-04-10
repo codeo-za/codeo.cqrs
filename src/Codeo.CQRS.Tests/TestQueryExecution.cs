@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing.Drawing2D;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Transactions;
 using Codeo.CQRS.Caching;
@@ -21,46 +19,236 @@ namespace Codeo.CQRS.Tests
     [TestFixture]
     public class TestQueryExecution : TestFixtureRequiringData
     {
-        [Test]
-        public void ShouldBeAbleToReadSingleResult()
+        [TestFixture]
+        public class WhenQueryingWithSingleDataSetResults : TestQueryExecution
         {
-            // Arrange
-            var queryExecutor = new QueryExecutor(new NoCache());
-            // Act
-            var result = queryExecutor.Execute(new FindCarlSagan());
-            // Assert
-            Expect(result).Not.To.Be.Null();
-            Expect(result.Name).To.Equal("Carl Sagan");
+            [Test]
+            public void ShouldBeAbleToReadSingleResult()
+            {
+                // Arrange
+                var queryExecutor = new QueryExecutor(new NoCache());
+                // Act
+                var result = queryExecutor.Execute(new FindCarlSagan());
+                // Assert
+                Expect(result).Not.To.Be.Null();
+                Expect(result.Name).To.Equal("Carl Sagan");
+            }
+
+            [Test]
+            public void ShouldBeAbleToInsertAndReadASingleResult()
+            {
+                // Arrange
+                var queryExecutor = new QueryExecutor(new NoCache());
+                var commandExecutor = new CommandExecutor(queryExecutor, new NoCache());
+                var name = GetRandomString(10, 20);
+                var id = commandExecutor.Execute(new CreatePerson(name));
+                // Act
+                var result1 = queryExecutor.Execute(new FindPersonByName(name));
+                var result2 = queryExecutor.Execute(new FindPersonById(id));
+                // Assert
+                Expect(result1).To.Intersection.Equal(new { Id = id, Name = name });
+                Expect(result2).To.Intersection.Equal(new { Id = id, Name = name });
+            }
+
+            [Test]
+            public void ShouldBeAbleToInsertWithNoResult()
+            {
+                // Arrange
+                var queryExecutor = new QueryExecutor(new NoCache());
+                var commandExecutor = new CommandExecutor(queryExecutor, new NoCache());
+                var name = GetRandomString(10, 20);
+                commandExecutor.Execute(new CreatePersonNoResult(name));
+                // Act
+                var result = queryExecutor.Execute(new FindPersonByName(name));
+                // Assert
+                Expect(result).To.Intersection.Equal(new { Name = name });
+            }
+
+            [Test]
+            public void ShouldBeAbleToReadMultipleResults()
+            {
+                // Arrange
+                var name1 = GetRandomString(10, 20);
+                var name2 = GetRandomString(10, 20);
+                CreatePerson(name1);
+                CreatePerson(name2);
+                var queryExecutor = new QueryExecutor(new NoCache());
+                // Act
+                var results = queryExecutor.Execute(
+                    new FindAllPeople()
+                );
+                // Assert
+                Expect(results).Not.To.Be.Empty();
+                Expect(results).To.Contain.Exactly(1).Matched.By(p => p.Name == name1);
+                Expect(results).To.Contain.Exactly(1).Matched.By(p => p.Name == name2);
+            }
+
+            [Test]
+            public void ShouldBeAbleToReadSingleResultOfNonEntity()
+            {
+                // Arrange
+                var queryExecutor = new QueryExecutor(new NoCache());
+                // Act
+                var result = queryExecutor.Execute(new FindCarlSaganAlike());
+                // Assert
+                Expect(result).Not.To.Be.Null();
+                Expect(result.Name).To.Equal("Carl Sagan");
+                Expect(result.DateOfBirth).To.Equal(new DateTime(1934, 11, 9, 0, 0, 0, DateTimeKind.Utc));
+            }
+
+            [Test]
+            public void ShouldAutoRegisterTypeMappingsAsRequired()
+            {
+                // Arrange
+                var queryExecutor = new QueryExecutor(new NoCache());
+                var query = new FindCarlSaganAlikes();
+                // Act
+                var results = queryExecutor.Execute(query);
+                // Assert
+                Expect(results).Not.To.Be.Null();
+                Expect(results)
+                    .To.Contain.Exactly(1).Item();
+                var result = results.First();
+                Expect(result.Name)
+                    .To.Equal("Carl Sagan");
+                Expect(result.DateOfBirth)
+                    .To.Equal(new DateTime(1934, 11, 9, 0, 0, 0, DateTimeKind.Utc));
+            }
         }
 
-        [Test]
-        public void ShouldBeAbleToInsertAndReadASingleResult()
+        [TestFixture]
+        public class WhenQueryingWithJoinsRequiringPerRowMapping : TestQueryExecution
         {
-            // Arrange
-            var queryExecutor = new QueryExecutor(new NoCache());
-            var commandExecutor = new CommandExecutor(queryExecutor, new NoCache());
-            var name = GetRandomString(10, 20);
-            var id = commandExecutor.Execute(new CreatePerson(name));
-            // Act
-            var result1 = queryExecutor.Execute(new FindPersonByName(name));
-            var result2 = queryExecutor.Execute(new FindPersonById(id));
-            // Assert
-            Expect(result1).To.Intersection.Equal(new { Id = id, Name = name });
-            Expect(result2).To.Intersection.Equal(new { Id = id, Name = name });
+            [Test]
+            public void ShouldBeAbleToQueryAcrossTwoIncludedTables()
+            {
+                // Arrange
+                var departmentName1 = GetRandomString(5);
+                var departmentId1 = CreateDepartment(departmentName1);
+                var departmentName2 = GetRandomString(5);
+                var departmentId2 = CreateDepartment(departmentName2);
+                var personName = GetRandomString(5);
+                var personId = CreatePerson(personName);
+                AssociatePersonWithDepartment(personId, departmentId1);
+                AssociatePersonWithDepartment(personId, departmentId2);
+                // Act
+                var result = QueryExecutor.Execute(
+                    new FindPersonWithDepartments(
+                        personId
+                    )
+                );
+                // Assert
+                Expect(result)
+                    .Not.To.Be.Null();
+                var person = FindPersonById(personId);
+                Expect(result)
+                    .To.Intersection.Equal(person);
+                var departments = FindDepartmentsById(departmentId1, departmentId2);
+                Expect(result.Departments)
+                    .To.Be.Deep.Equivalent.To(departments);
+            }
+
+            [Test]
+            public void ShouldBeAbleToQueryAcrossThreeIncludedTables()
+            {
+                // Arrange
+                var departmentName1 = GetRandomString(5);
+                var departmentId1 = CreateDepartment(departmentName1);
+                var departmentName2 = GetRandomString(5);
+                var departmentId2 = CreateDepartment(departmentName2);
+                var personName = GetRandomString(5);
+                var personId = CreatePerson(personName);
+                AssociatePersonWithDepartment(personId, departmentId1);
+                AssociatePersonWithDepartment(personId, departmentId2);
+                var dept1Tags = FindTagsById(new[]
+                {
+                    CreateTagForDepartment(departmentId1, GetRandomString(5)),
+                    CreateTagForDepartment(departmentId1, GetRandomString(5)),
+                });
+                var dept2Tags = FindTagsById(new[]
+                {
+                    CreateTagForDepartment(departmentId2, GetRandomString(5)),
+                    CreateTagForDepartment(departmentId2, GetRandomString(5)),
+                });
+                // Act
+                var result = QueryExecutor.Execute(
+                    new FindPersonWithDepartmentsAndTags(
+                        personId
+                    )
+                );
+                // Assert
+                Expect(result)
+                    .Not.To.Be.Null();
+                var person = FindPersonById(personId);
+                Expect(result)
+                    .To.Intersection.Equal(person);
+                var departments = FindDepartmentsById(
+                    departmentId1,
+                    departmentId2
+                );
+                Expect(result.Departments.Select(d => d as Department))
+                    .To.Be.Intersection.Equivalent.To(departments);
+                var dept1 = result.Departments.Single(d => d.Id == departmentId1);
+                Expect(dept1.Tags)
+                    .To.Be.Intersection.Equivalent.To(dept1Tags);
+                var dept2 = result.Departments.Single(d => d.Id == departmentId2);
+                Expect(dept2.Tags)
+                    .To.Be.Intersection.Equivalent.To(dept2Tags);
+            }
+
+            private DepartmentTag[] FindTagsById(int[] ids)
+            {
+                return QueryExecutor.Execute(
+                    new FindTagsById(
+                        ids
+                    )
+                ).ToArray();
+            }
+
+            private int CreateTagForDepartment(
+                int departmentId,
+                string tag)
+            {
+                return CommandExecutor.Execute(
+                    new CreateTagForDepartment(
+                        departmentId,
+                        tag
+                    )
+                );
+            }
         }
 
-        [Test]
-        public void ShouldBeAbleToInsertWithNoResult()
+        [TestFixture]
+        public class WhenQueryingWithMultipleResultSets : TestQueryExecution
         {
-            // Arrange
-            var queryExecutor = new QueryExecutor(new NoCache());
-            var commandExecutor = new CommandExecutor(queryExecutor, new NoCache());
-            var name = GetRandomString(10, 20);
-            commandExecutor.Execute(new CreatePersonNoResult(name));
-            // Act
-            var result = queryExecutor.Execute(new FindPersonByName(name));
-            // Assert
-            Expect(result).To.Intersection.Equal(new { Name = name });
+            [Test]
+            public void ShouldBeAbleToUseAllResultSets()
+            {
+                // Arrange
+                var personName = GetRandomString(5);
+                var personId = CreatePerson(personName);
+                var departmentName = GetRandomString(5);
+                var departmentId = CreateDepartment(departmentName);
+                // Act
+                var result = QueryExecutor.Execute(
+                    new FindAllPeopleAndDepartments()
+                );
+                // Assert
+                // result likely has more than just the entities
+                //    created in this test -- which is OK
+                Expect(result.People)
+                    .Not.To.Be.Empty();
+                var person = FindPersonById(personId);
+                Expect(result.People)
+                    .To.Contain.Exactly(1)
+                    .Deep.Equal.To(person);
+                Expect(result.Departments)
+                    .Not.To.Be.Empty();
+                var department = FindDepartmentsById(departmentId).Single();
+                Expect(result.Departments)
+                    .To.Contain.Exactly(1)
+                    .Deep.Equal.To(department);
+            }
         }
 
         [TestFixture]
@@ -105,25 +293,6 @@ namespace Codeo.CQRS.Tests
                     // Assert
                 }
             }
-        }
-
-        [Test]
-        public void ShouldBeAbleToReadMultipleResults()
-        {
-            // Arrange
-            var name1 = GetRandomString(10, 20);
-            var name2 = GetRandomString(10, 20);
-            CreatePerson(name1);
-            CreatePerson(name2);
-            var queryExecutor = new QueryExecutor(new NoCache());
-            // Act
-            var results = queryExecutor.Execute(
-                new FindAllPeople()
-            );
-            // Assert
-            Expect(results).Not.To.Be.Empty();
-            Expect(results).To.Contain.Exactly(1).Matched.By(p => p.Name == name1);
-            Expect(results).To.Contain.Exactly(1).Matched.By(p => p.Name == name2);
         }
 
         [TestFixture]
@@ -186,37 +355,45 @@ namespace Codeo.CQRS.Tests
             }
         }
 
-        [Test]
-        public void ShouldBeAbleToReadSingleResultOfNonEntity()
+        [TestFixture]
+        public class ProvidingMultipleFilters : TestQueryExecution
         {
-            // Arrange
-            var queryExecutor = new QueryExecutor(new NoCache());
-            // Act
-            var result = queryExecutor.Execute(new FindCarlSaganAlike());
-            // Assert
-            Expect(result).Not.To.Be.Null();
-            Expect(result.Name).To.Equal("Carl Sagan");
-            Expect(result.DateOfBirth).To.Equal(new DateTime(1934, 11, 9, 0, 0, 0, DateTimeKind.Utc));
+            [Test]
+            public void ShouldBeAbleToProvideMultipleFilters()
+            {
+                // Arrange
+                var name = GetRandomString(10, 20);
+                var id = CreatePerson(name);
+                var qry = new FindPersonByNameAndId(name, id);
+                // Act
+                var result = QueryExecutor.Execute(qry);
+                // Assert
+                Expect(result)
+                    .Not.To.Be.Null();
+                Expect(result.Id)
+                    .To.Equal(id);
+                Expect(result.Name)
+                    .To.Equal(name);
+            }
+
+            public class FindPersonByNameAndId : SelectQuery<Person>
+            {
+                public FindPersonByNameAndId(
+                    string name,
+                    int id
+                ) : base(
+                    "select * from people /**where**/",
+                    ("id = @id", new { id }),
+                    ("name = @name", new { name })
+                )
+                {
+                }
+            }
         }
 
-        [Test]
-        public void ShouldBeAbleToReadManyResultsOfNonEntity()
-        {
-            // Arrange
-            var queryExecutor = new QueryExecutor(new NoCache());
-            var query = new FindCarlSaganAlikes();
-            // Act
-            var results = queryExecutor.Execute(query);
-            // Assert
-            Expect(results).Not.To.Be.Null();
-            Expect(results).To.Contain.Exactly(1).Item();
-            var result = results.First();
-            Expect(result.Name).To.Equal("Carl Sagan");
-            Expect(result.DateOfBirth).To.Equal(new DateTime(1934, 11, 9, 0, 0, 0, DateTimeKind.Utc));
-        }
 
         [TestFixture]
-        public class TestGenericUpdateCommand : TestQueryExecution
+        public class WhenUpdating : TestQueryExecution
         {
             [Test]
             public void ShouldUpdate()
@@ -235,7 +412,7 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class TestGenericDeleteCommand : TestQueryExecution
+        public class WhenDeleting : TestQueryExecution
         {
             [Test]
             public void ShouldDelete()
@@ -267,10 +444,10 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class TestCachingByAttribute : TestQueryExecution
+        public class WhenDirectingCachingViaAttribute : TestQueryExecution
         {
             [TestFixture]
-            public class WhenNotDecorated : TestCachingByAttribute
+            public class WhenNotDecorated : WhenDirectingCachingViaAttribute
             {
                 [Test]
                 public void ShouldNotCache()
@@ -309,7 +486,7 @@ namespace Codeo.CQRS.Tests
             }
 
             [TestFixture]
-            public class OnSelectQueries : TestCachingByAttribute
+            public class OnSelectQueries : WhenDirectingCachingViaAttribute
             {
                 [Test]
                 public void ShouldUseCache()
@@ -383,10 +560,28 @@ namespace Codeo.CQRS.Tests
                                 () => $"Should have expired the cached item and retrieved new name: {newName}");
                     }
                 }
+
+                [Test]
+                public void CollectionPropertiesInCacheKeysShouldIncludeAllValues()
+                {
+                    // Arrange
+                    var ids = GetRandomCollection<int>(2, 4);
+                    var qry = new FindPeopleByIds(ids);
+                    var expected = @$"{
+                            nameof(FindPeopleByIds)
+                        }-Ids::{
+                            string.Join(",", qry.Ids)
+                        }";
+                    // Act
+                    var result = qry.GenerateCacheKeyForTesting();
+                    // Assert
+                    Expect(result)
+                        .To.Equal(expected);
+                }
             }
 
             [TestFixture]
-            public class ShouldNeverUseOnTransformQueries : TestCachingByAttribute
+            public class ShouldNeverUseOnTransformQueries : WhenDirectingCachingViaAttribute
             {
                 [TestFixture]
                 public class WhenIsDelete : ShouldNeverUseOnTransformQueries
@@ -562,7 +757,7 @@ namespace Codeo.CQRS.Tests
             }
 
             [TestFixture]
-            public class WhenSpecifiedCacheKeyPropsNotFound: TestQueryExecution
+            public class WhenSpecifiedCacheKeyPropsNotFound : TestQueryExecution
             {
                 [Test]
                 public void ShouldThrow()
@@ -579,7 +774,7 @@ namespace Codeo.CQRS.Tests
             }
 
             [TestFixture]
-            public class WhenSpecifiedCacheKeyPropsArePrivate: TestQueryExecution
+            public class WhenSpecifiedCacheKeyPropsArePrivate : TestQueryExecution
             {
                 [Test]
                 public void ShouldCacheByThatKey()
@@ -615,7 +810,7 @@ namespace Codeo.CQRS.Tests
                     }
                 }
             }
-            
+
             private string NameOfPerson(int id)
             {
                 return QueryExecutor.Execute(
@@ -669,15 +864,40 @@ namespace Codeo.CQRS.Tests
             }
         }
 
+        private int CreateDepartment(string name)
+        {
+            return CommandExecutor.Execute(
+                new CreateDepartment(name)
+            );
+        }
+
         private int CreatePerson(string name)
         {
-            var cache = new NoCache();
-            var executor = new CommandExecutor(
-                new QueryExecutor(cache),
-                cache
-            );
-            return executor.Execute(
+            return CommandExecutor.Execute(
                 new CreatePerson(name)
+            );
+        }
+
+        private void AssociatePersonWithDepartment(
+            int personId,
+            int departmentId
+        )
+        {
+            CommandExecutor.Execute(
+                new AddPersonToDepartment(
+                    personId,
+                    departmentId
+                )
+            );
+        }
+
+        private IEnumerable<Department> FindDepartmentsById(
+            params int[] ids)
+        {
+            return QueryExecutor.Execute(
+                new FindDepartmentsById(
+                    ids
+                )
             );
         }
     }

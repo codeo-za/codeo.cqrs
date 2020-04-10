@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Reflection;
-using Codeo.CQRS.Caching;
 using Codeo.CQRS.Exceptions;
 using Dapper;
 
@@ -18,13 +17,44 @@ namespace Codeo.CQRS
         {
             internal Configuration()
             {
+                WithSnakeCaseMappingEnabled();
+            }
+
+            public Configuration WithSnakeCaseMappingEnabled()
+            {
+                DefaultTypeMap.MatchNamesWithUnderscores = true;
+                RemapAllKnownEntities();
+                return this;
+            }
+
+            public Configuration WithSnakeCaseMappingDisabled()
+            {
+                DefaultTypeMap.MatchNamesWithUnderscores = false;
+                RemapAllKnownEntities();
+                return this;
+            }
+
+            public Configuration Reset()
+            {
+                BaseSqlExecutor.RemoveAllExceptionHandlers();
+                BaseSqlExecutor.ConnectionFactory = null;
+                EntityDoesNotExistException.DebugEnabled = false;
+                return this;
             }
 
             public Configuration WithExceptionHandler<TException>(
-                IExceptionHandler<TException> handler) 
-                where TException: Exception
+                IExceptionHandler<TException> handler)
+                where TException : Exception
             {
-                BaseSqlExecutor.AddExceptionHandler(handler);
+                BaseSqlExecutor.InstallExceptionHandler(handler);
+                return this;
+            }
+
+            public Configuration WithoutExceptionHandler<TException>(
+                IExceptionHandler<TException> handler)
+                where TException : Exception
+            {
+                BaseSqlExecutor.UninstallExceptionHandler(handler);
                 return this;
             }
 
@@ -32,7 +62,7 @@ namespace Codeo.CQRS
             {
                 var entityType = typeof(IEntity);
                 return WithEntitiesFrom(
-                    assembly, 
+                    assembly,
                     x => entityType.IsAssignableFrom(x) && x != entityType);
             }
 
@@ -55,7 +85,7 @@ namespace Codeo.CQRS
             }
 
             public Configuration WithEntitiesFrom(
-                Assembly assembly, 
+                Assembly assembly,
                 Func<Type, bool> discriminator)
             {
                 var entityTypes = assembly.GetTypes().Where(discriminator);
@@ -72,6 +102,19 @@ namespace Codeo.CQRS
                 return this;
             }
 
+            public static void RemapAllKnownEntities()
+            {
+                lock (MapLock)
+                {
+                    var types = BaseSqlExecutor.KnownMappedTypes.Keys.ToArray();
+                    BaseSqlExecutor.KnownMappedTypes.Clear();
+                    foreach (var type in types)
+                    {
+                        MapEntityType(type);
+                    }
+                }
+            }
+
             private static readonly object MapLock = new object();
 
             public static void MapEntityType(Type type)
@@ -83,22 +126,30 @@ namespace Codeo.CQRS
                         // may have been added between the start of this call and now
                         return;
                     }
+
                     SqlMapper.SetTypeMap(type, Map(type));
                     BaseSqlExecutor.KnownMappedTypes.TryAdd(type, true);
                 }
             }
-
+            
             private static CustomPropertyTypeMap Map(Type eType)
             {
                 return new CustomPropertyTypeMap(
                     eType,
                     (type, column) =>
                     {
-                        var cleanedColumnName = column.Replace("_", "");
+                        var columnName = 
+                            DefaultTypeMap.MatchNamesWithUnderscores
+                            ? column.Replace("_", "")
+                            : column;
                         var mappedProperty =
                             type.GetProperties()
                                 .FirstOrDefault(
-                                    x => x.Name.Equals(cleanedColumnName, StringComparison.OrdinalIgnoreCase));
+                                    x => x.Name.Equals(
+                                        columnName,
+                                        StringComparison.OrdinalIgnoreCase
+                                    )
+                                );
 
                         return mappedProperty;
                     }
