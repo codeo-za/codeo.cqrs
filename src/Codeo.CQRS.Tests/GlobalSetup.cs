@@ -14,6 +14,8 @@ namespace Codeo.CQRS.Tests
 
         public static void OneTimeSetup()
         {
+            // if your test needs data, please make
+            // your fixture inherit from TestFixtureRequiringData
             if (_db != null)
             {
                 // already set up

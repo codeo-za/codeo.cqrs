@@ -995,6 +995,34 @@ namespace Codeo.CQRS
             return QueryFirst<T>(Operation.Delete, sql, parameters);
         }
 
+        public void ExecuteDdl(string sql)
+        {
+            var wrapped = WrapWithDdlProc(sql);
+            Execute(Operation.DDL, wrapped, null);
+        }
+
+        /// <summary>
+        /// Wraps some DDL sql in a procedure to be run at the database.
+        /// Override this method if you'd like to run DDL scripts on
+        /// engines which this syntax doesn't support
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <returns></returns>
+        protected virtual string WrapWithDdlProc(string sql)
+        {
+            var procName = $"sp_execddl_{Guid.NewGuid().ToString().Replace("-", "").ToLower()}";
+            return $@"
+drop procedure if exists ${procName};
+create procedure {procName}()
+begin
+    start transaction;
+    {sql}
+    commit;
+end;
+call {procName};
+drop procedure if exists {procName};
+".Trim();
+        }
 
         public int ExecuteUpdate(string sql)
         {

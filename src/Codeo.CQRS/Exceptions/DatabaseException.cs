@@ -74,6 +74,7 @@ namespace Codeo.CQRS.Exceptions
         Select,
         Update,
         Delete,
-        Insert
+        Insert,
+        DDL
     }
 }
