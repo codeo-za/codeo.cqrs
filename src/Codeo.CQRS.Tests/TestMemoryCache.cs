@@ -31,7 +31,7 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class DefaultCachePolicy : TestMemoryCache
+        public class DefaultCachePolicy
         {
             [Test]
             public void ShouldHaveDefaultPropertyValues()
@@ -51,7 +51,7 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class ConstructedWithNoParameters : TestMemoryCache
+        public class ConstructedWithNoParameters
         {
             [Test]
             public void ShouldUseDefaultMemoryCache()
@@ -94,7 +94,7 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class Dispose : TestMemoryCache
+        public class Dispose
         {
             [Test]
             public void ShouldDisposeUnderlyingCache()
@@ -213,7 +213,7 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class ContainsKey : TestMemoryCache
+        public class ContainsKey
         {
             [Test]
             public void ShouldReturnFromUnderlying_Contains()
@@ -235,13 +235,13 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class Set : TestMemoryCache
+        public class Set
         {
             [TestFixture]
-            public class GivenKey : Set
+            public class GivenKey
             {
                 [TestFixture]
-                public class AndValue : GivenKey
+                public class AndValue
                 {
                     [Test]
                     public void ShouldSet()
@@ -263,7 +263,7 @@ namespace Codeo.CQRS.Tests
                     }
 
                     [TestFixture]
-                    public class AndAbsoluteExpiration : AndValue
+                    public class AndAbsoluteExpiration
                     {
                         [Test]
                         public void ShouldSetWithExpiration()
@@ -291,7 +291,7 @@ namespace Codeo.CQRS.Tests
                     }
 
                     [TestFixture]
-                    public class AndSlidingExpiration : AndValue
+                    public class AndSlidingExpiration
                     {
                         [Test]
                         public void ShouldSetWithExpiration()
@@ -323,10 +323,10 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class Get : TestMemoryCache
+        public class Get
         {
             [TestFixture]
-            public class Untyped : Get
+            public class Untyped
             {
                 [Test]
                 public void ShouldReturnNull()
@@ -347,7 +347,7 @@ namespace Codeo.CQRS.Tests
             }
 
             [TestFixture]
-            public class Typed : Get
+            public class Typed
             {
                 [TestCase(typeof(int), default(int))]
                 [TestCase(typeof(bool), default(bool))]
@@ -379,7 +379,7 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class GetOrDefault : TestMemoryCache
+        public class GetOrDefault
         {
             [Test]
             public void ShouldAlwaysReturnDefaultValue()
@@ -401,7 +401,7 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class GetOrSet : TestMemoryCache
+        public class GetOrSet
         {
             public interface IFetcher
             {
@@ -409,13 +409,13 @@ namespace Codeo.CQRS.Tests
             }
 
             [TestFixture]
-            public class WhenNoCachedValue : GetOrSet
+            public class WhenNoCachedValue
             {
                 [TestFixture]
-                public class GivenKey : WhenNoCachedValue
+                public class GivenKey
                 {
                     [TestFixture]
-                    public class AndGenerator : GivenKey
+                    public class AndGenerator
                     {
                         [Test]
                         public void ShouldAlwaysReturnResultOfGenerator()
@@ -449,7 +449,7 @@ namespace Codeo.CQRS.Tests
                         }
 
                         [TestFixture]
-                        public class AndSlidingExpiration : GivenKey
+                        public class AndSlidingExpiration
                         {
                             [Test]
                             public void ShouldAlwaysReturnResultOfGenerator()
@@ -488,7 +488,7 @@ namespace Codeo.CQRS.Tests
                         }
 
                         [TestFixture]
-                        public class AndAbsoluteExpiration : GivenKey
+                        public class AndAbsoluteExpiration
                         {
                             [Test]
                             public void ShouldAlwaysReturnResultOfGenerator()
@@ -530,13 +530,13 @@ namespace Codeo.CQRS.Tests
             }
 
             [TestFixture]
-            public class AndHaveCachedValue : GetOrSet
+            public class AndHaveCachedValue
             {
                 [TestFixture]
-                public class GivenKey : AndHaveCachedValue
+                public class GivenKey
                 {
                     [TestFixture]
-                    public class AndGenerator : GivenKey
+                    public class AndGenerator
                     {
                         [Test]
                         public void ShouldAlwaysReturnResultOfGenerator()
@@ -563,7 +563,7 @@ namespace Codeo.CQRS.Tests
                         }
 
                         [TestFixture]
-                        public class AndSlidingExpiration : GivenKey
+                        public class AndSlidingExpiration
                         {
                             [Test]
                             public void ShouldAlwaysReturnResultOfGenerator()
@@ -593,7 +593,7 @@ namespace Codeo.CQRS.Tests
                         }
 
                         [TestFixture]
-                        public class AndAbsoluteExpiration : GivenKey
+                        public class AndAbsoluteExpiration
                         {
                             [Test]
                             public void ShouldAlwaysReturnResultOfGenerator()
@@ -627,10 +627,10 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class Remove : TestMemoryCache
+        public class Remove
         {
             [TestFixture]
-            public class WhenNoMatchingKey : Remove
+            public class WhenNoMatchingKey
             {
                 [Test]
                 public void ShouldNotThrow()
@@ -647,7 +647,7 @@ namespace Codeo.CQRS.Tests
             }
 
             [TestFixture]
-            public class WhenHaveMatchingKey : TestMemoryCache
+            public class WhenHaveMatchingKey
             {
                 [Test]
                 public void ShouldRemove()
@@ -670,10 +670,10 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class RemoveAll : TestMemoryCache
+        public class RemoveAll
         {
             [TestFixture]
-            public class WhenEmpty : RemoveAll
+            public class WhenEmpty
             {
                 [Test]
                 public void ShouldNotThrow()
@@ -689,7 +689,7 @@ namespace Codeo.CQRS.Tests
             }
 
             [TestFixture]
-            public class WhenHaveCache : RemoveAll
+            public class WhenHaveCache
             {
                 [Test]
                 public void ShouldClearAll()
@@ -722,7 +722,7 @@ namespace Codeo.CQRS.Tests
         public class IntegrationTests
         {
             [TestFixture]
-            public class AttemptingToGetNonExistentItem : IntegrationTests
+            public class AttemptingToGetNonExistentItem
             {
                 [Test]
                 public void ShouldReturn()
@@ -737,7 +737,7 @@ namespace Codeo.CQRS.Tests
             }
 
             [TestFixture]
-            public class AttemptingGetForMismatchedType : IntegrationTests
+            public class AttemptingGetForMismatchedType
             {
                 [Test]
                 public void ShouldAttemptConversion()
@@ -771,10 +771,10 @@ namespace Codeo.CQRS.Tests
             }
 
             [TestFixture]
-            public class EssentiallyTestingMemoryCache : IntegrationTests
+            public class EssentiallyTestingMemoryCache
             {
                 [TestFixture]
-                public class Expiration : EssentiallyTestingMemoryCache
+                public class Expiration
                 {
                     [Test]
                     public void ShouldReFetchAfterItemHasExpired()
@@ -831,7 +831,7 @@ namespace Codeo.CQRS.Tests
                 }
             }
 
-            private ICache Create()
+            private static ICache Create()
             {
                 return new MemoryCache();
             }
@@ -861,14 +861,14 @@ namespace Codeo.CQRS.Tests
             }
         }
 
-        private ObjectCache CreateSubstituteObjectCache()
+        private static ObjectCache CreateSubstituteObjectCache()
         {
             return SubstituteObjectCacheBuilder
                 .Create()
                 .Build();
         }
 
-        private ICache Create(
+        private static ICache Create(
             ObjectCache actual)
         {
             return new MemoryCache(actual);

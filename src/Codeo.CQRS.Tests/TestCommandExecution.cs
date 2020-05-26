@@ -12,10 +12,10 @@ using static PeanutButter.RandomGenerators.RandomValueGen;
 namespace Codeo.CQRS.Tests
 {
     [TestFixture]
-    public class TestCommandExecution : TestFixtureRequiringData
+    public class TestCommandExecution
     {
         [TestFixture]
-        public class TransactionCompletedHandler
+        public class TransactionCompletedHandler: TestFixtureRequiringData
         {
             [Test]
             public void WhenNoTransactionExists_AndTransactionEventHandlerUsed_ShouldThrow()
@@ -83,7 +83,7 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class AdvancedExecution
+        public class AdvancedExecution: TestFixtureRequiringData
         {
             // required for code like Voucher's Distributed Lock
 
@@ -116,7 +116,7 @@ namespace Codeo.CQRS.Tests
             }
 
             [Test]
-            public void ShouldBeAbleToProviderOnceOffExceptionHandler()
+            public void ShouldBeAbleToProvideOnceOffExceptionHandler()
             {
                 // Arrange
                 var handler = new CustomHandler();
