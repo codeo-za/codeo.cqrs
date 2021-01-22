@@ -3,6 +3,19 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net462</TargetFrameworks>
     <AssemblyVersion>1.0.0</AssemblyVersion>
+    <Dascription>
+      Database-engine-agnostic implementation of the Command Query Responsibility Separation pattern
+    </Dascription>
+    <Authors>Codeo</Authors>
+    <Owners>Codeo</Owners>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Copyright>Copyright 2019</Copyright>
+    <tags>CQRS data-access</tags>
+    <VersionPrefix>1.2.0</VersionPrefix>
+    <DebugSymbols>true</DebugSymbols>
+    <PackageIcon>content/icon.png</PackageIcon>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
   
   <PropertyGroup Condition="$(TargetFramework)=='netstandard2.0'">
@@ -15,6 +28,9 @@
     <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
     <PackageReference Include="System.Runtime.Caching" Version="4.7.0" />
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="icon.png" Pack="true" PackagePath="content"/>
   </ItemGroup>
 
   <ItemGroup>

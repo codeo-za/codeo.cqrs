@@ -7,6 +7,7 @@
         "test": "run-s \"zarro test-dotnet\"",
         "build": "run-s \"zarro build\"",
         "zarro": "cross-env BUILD_TOOLS_FOLDER=tools DOTNET_CORE=1 zarro",
+        "quick-pack": "run-s \"zarro quick-pack\"",
         "release": "cross-env Configuration=Release run-s \"zarro release\""
     },
     "author": "",
