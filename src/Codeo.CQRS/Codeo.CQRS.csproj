@@ -3,11 +3,6 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net462</TargetFrameworks>
     <AssemblyVersion>1.0.0</AssemblyVersion>
-    <!-- 
-    as of dotnet core 3.1, PackageVersion and Version completely override
-    any request for a version suffix, so please use VersionPrefix
-     -->
-    <VersionPrefix>1.1.4</VersionPrefix>
   </PropertyGroup>
   
   <PropertyGroup Condition="$(TargetFramework)=='netstandard2.0'">

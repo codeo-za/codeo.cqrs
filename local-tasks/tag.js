@@ -22,11 +22,12 @@ gulp.task("tag", () => {
           version = node[0].trim();
 
         gutil.log(gutil.colors.cyan(`Tagging at: "v${version}"`));
-        gitTag(`v${version}`, `:bookmark: ${version}`)
-          .then(() => {
-            resolve();
-          })
-          .catch(err => reject(err));
+        gitTag({
+          tag: `v${version}`,
+          comment: `:bookmark: ${version}`
+        }).then(() => {
+          resolve();
+        }).catch(err => reject(err));
         return xml;
       })
     );
