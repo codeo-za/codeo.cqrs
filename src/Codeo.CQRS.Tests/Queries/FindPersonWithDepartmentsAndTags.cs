@@ -52,6 +52,10 @@ namespace Codeo.CQRS.Tests.Queries
             Result = results.FirstOrDefault();
         }
 
+        public override void Validate()
+        {
+        }
+
         private DepartmentWithTags AddDepartmentFor(
             Department department, 
             IList<DepartmentWithTags> departments)

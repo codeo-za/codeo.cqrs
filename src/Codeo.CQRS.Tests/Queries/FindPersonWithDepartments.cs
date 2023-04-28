@@ -31,5 +31,9 @@ namespace Codeo.CQRS.Tests.Queries
                 collectionFinder: p => p.Departments as List<Department>
             ).FirstOrDefault();
         }
+
+        public override void Validate()
+        {
+        }
     }
 }

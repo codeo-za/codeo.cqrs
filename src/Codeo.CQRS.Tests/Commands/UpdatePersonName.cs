@@ -15,6 +15,10 @@ namespace Codeo.CQRS.Tests.Commands
         {
             Id = id;
         }
+
+        public override void Validate()
+        {
+        }
     }
 
     // cache should be ignored
@@ -34,6 +38,10 @@ namespace Codeo.CQRS.Tests.Commands
         )
         {
             Id = id;
+        }
+
+        public override void Validate()
+        {
         }
     }
 }

@@ -15,5 +15,9 @@ namespace Codeo.CQRS.Tests.Queries
         {
             Id = id;
         }
+
+        public override void Validate()
+        {
+        }
     }
 }

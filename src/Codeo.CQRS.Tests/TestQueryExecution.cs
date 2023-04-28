@@ -388,6 +388,10 @@ namespace Codeo.CQRS.Tests
                 )
                 {
                 }
+
+                public override void Validate()
+                {
+                }
             }
         }
 

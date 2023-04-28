@@ -17,10 +17,7 @@ namespace Codeo.CQRS
         /// <summary>
         /// Validates this instance.
         /// </summary>
-        public virtual void Validate()
-        {
-            // not required to override this
-        }
+        public abstract void Validate();
 
         public void ValidateTransactionScope()
         {
