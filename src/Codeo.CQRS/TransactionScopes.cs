@@ -4,15 +4,25 @@ using System.Transactions;
 
 namespace Codeo.CQRS
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public class TransactionScopes
     {
         /// <summary>
-        /// Returns a transaction scope which supresses the ambient scope
+        /// The default timeout, in seconds, for
+        /// transactions
+        /// </summary>
+        public const int DEFAULT_TIMEOUT_SECONDS = 30;
+
+        /// <summary>
+        /// Returns a transaction scope which suppresses the ambient scope
         /// </summary>
         /// <param name="timeout"></param>
         /// <returns></returns>
-        public static TransactionScopeDecorator Suppress(
-            int timeout = 30)
+        public static ITransactionScope Suppress(
+            int timeout = DEFAULT_TIMEOUT_SECONDS
+        )
         {
             return Create(
                 TransactionScopeOption.Suppress,
@@ -25,11 +35,12 @@ namespace Codeo.CQRS
         /// <summary>
         /// Returns a transaction scope with the relevant timeout in seconds
         /// </summary>
+        /// <param name="option"></param>
         /// <param name="timeout"></param>
         /// <returns></returns>
-        public static TransactionScopeDecorator ReadUncommitted(
+        public static ITransactionScope ReadUncommitted(
             TransactionScopeOption option = TransactionScopeOption.Required,
-            int timeout = 30)
+            int timeout = DEFAULT_TIMEOUT_SECONDS)
         {
             return Create(
                 option,
@@ -43,11 +54,12 @@ namespace Codeo.CQRS
         /// <summary>
         /// Returns a transaction scope with the relevant timeout in seconds
         /// </summary>
+        /// <param name="option"></param>
         /// <param name="timeout"></param>
         /// <returns></returns>
-        public static TransactionScopeDecorator ReadCommitted(
+        public static ITransactionScope ReadCommitted(
             TransactionScopeOption option = TransactionScopeOption.Required,
-            int timeout = 30)
+            int timeout = DEFAULT_TIMEOUT_SECONDS)
         {
             return Create(
                 option,
@@ -61,11 +73,12 @@ namespace Codeo.CQRS
         /// <summary>
         /// Returns a transaction scope with the relevant timeout in seconds
         /// </summary>
+        /// <param name="option"></param>
         /// <param name="timeout"></param>
         /// <returns></returns>
-        public static TransactionScopeDecorator RepeatableRead(
+        public static ITransactionScope RepeatableRead(
             TransactionScopeOption option = TransactionScopeOption.Required,
-            int timeout = 30)
+            int timeout = DEFAULT_TIMEOUT_SECONDS)
         {
             return Create(
                 option,
@@ -79,11 +92,12 @@ namespace Codeo.CQRS
         /// <summary>
         /// Returns a transaction scope with the relevant timeout in seconds
         /// </summary>
+        /// <param name="option"></param>
         /// <param name="timeout"></param>
         /// <returns></returns>
-        public static TransactionScopeDecorator Serializable(
+        public static ITransactionScope Serializable(
             TransactionScopeOption option = TransactionScopeOption.Required,
-            int timeout = 30)
+            int timeout = DEFAULT_TIMEOUT_SECONDS)
         {
             return Create(
                 option,
@@ -97,11 +111,12 @@ namespace Codeo.CQRS
         /// <summary>
         /// Returns a transaction scope with the relevant timeout in seconds
         /// </summary>
+        /// <param name="option"></param>
         /// <param name="timeout"></param>
         /// <returns></returns>
-        public static TransactionScopeDecorator Snapshot(
+        public static ITransactionScope Snapshot(
             TransactionScopeOption option = TransactionScopeOption.Required,
-            int timeout = 30)
+            int timeout = DEFAULT_TIMEOUT_SECONDS)
         {
             return Create(
                 option,
@@ -110,7 +125,6 @@ namespace Codeo.CQRS
                     IsolationLevel = IsolationLevel.Snapshot,
                     Timeout = TimeSpan.FromSeconds(timeout)
                 });
-            ;
         }
 
         /// <summary>
@@ -119,18 +133,18 @@ namespace Codeo.CQRS
         /// <param name="defaultLevelIfNoAmbient"></param>
         /// <param name="timeout"></param>
         /// <returns></returns>
-        public static TransactionScopeDecorator JoinOrDefault(
+        public static ITransactionScope JoinOrDefault(
             IsolationLevel defaultLevelIfNoAmbient,
-            int timeout = 30)
+            int timeout = DEFAULT_TIMEOUT_SECONDS)
         {
             return Create(TransactionScopeOption.Required,
-                          new TransactionOptions()
-                          {
-                              IsolationLevel = Transaction.Current == null
-                                  ? defaultLevelIfNoAmbient
-                                  : Transaction.Current.IsolationLevel,
-                              Timeout = TimeSpan.FromSeconds(timeout)
-                          });
+                new TransactionOptions()
+                {
+                    IsolationLevel = Transaction.Current == null
+                        ? defaultLevelIfNoAmbient
+                        : Transaction.Current.IsolationLevel,
+                    Timeout = TimeSpan.FromSeconds(timeout)
+                });
         }
 
         /// <summary>
@@ -139,7 +153,7 @@ namespace Codeo.CQRS
         /// <param name="scopeOption"></param>
         /// <param name="transactionOptions"></param>
         /// <returns></returns>
-        public static TransactionScopeDecorator Create(
+        public static ITransactionScope Create(
             TransactionScopeOption scopeOption,
             TransactionOptions transactionOptions)
         {
@@ -149,10 +163,15 @@ namespace Codeo.CQRS
             ).ProtectAgainstDisposalExceptionsWith(ScopeDisposalExceptionHandlers);
         }
 
-        private static ConcurrentDictionary<Guid, Func<Exception, DisposalExceptionHandlerResults>>
+        private static readonly ConcurrentDictionary<Guid, Func<Exception, DisposalExceptionHandlerResults>>
             ScopeDisposalExceptionHandlers =
                 new ConcurrentDictionary<Guid, Func<Exception, DisposalExceptionHandlerResults>>();
 
+        /// <summary>
+        /// Install an exception handler for disposal-time exceptions
+        /// </summary>
+        /// <param name="handler"></param>
+        /// <returns></returns>
         public static Guid InstallDisposalExceptionHandler(
             Func<Exception, DisposalExceptionHandlerResults> handler)
         {
@@ -161,11 +180,14 @@ namespace Codeo.CQRS
             return id;
         }
 
+        /// <summary>
+        /// Remove the provided disposal-time exception handler, if it is found
+        /// </summary>
+        /// <param name="id"></param>
         public static void UninstallDisposalExceptionHandler(
             Guid id)
         {
             ScopeDisposalExceptionHandlers.TryRemove(id, out var _);
         }
-
     }
 }
