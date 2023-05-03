@@ -183,6 +183,10 @@ namespace Codeo.CQRS.Tests
                     new { Id }
                 );
             }
+
+            public override void Validate()
+            {
+            }
         }
 
         public class CreateCaseTestingEntity : Command<int>
@@ -205,6 +209,10 @@ namespace Codeo.CQRS.Tests
                 values (@TitleCase, @SnakeCase);
                 select LAST_INSERT_ID();
 ", new { TitleCase, SnakeCase });
+            }
+
+            public override void Validate()
+            {
             }
         }
 
@@ -232,6 +240,10 @@ namespace Codeo.CQRS.Tests
     public class GenericSelectQuery<T> : SelectQuery<T>
     {
         public GenericSelectQuery(string sql) : base(sql)
+        {
+        }
+
+        public override void Validate()
         {
         }
     }

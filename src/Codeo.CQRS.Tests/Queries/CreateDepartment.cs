@@ -18,6 +18,10 @@ namespace Codeo.CQRS.Tests.Queries
         {
             Name = name;
         }
+
+        public override void Validate()
+        {
+        }
     }
 
     public class CreateTagForDepartment : InsertCommand<int>
@@ -41,6 +45,10 @@ namespace Codeo.CQRS.Tests.Queries
             DepartmentId = departmentId;
             Tag = tag;
         }
+
+        public override void Validate()
+        {
+        }
     }
 
     public class FindTagsById : SelectQuery<IEnumerable<DepartmentTag>>
@@ -58,6 +66,10 @@ namespace Codeo.CQRS.Tests.Queries
             )
         {
             Ids = ids;
+        }
+
+        public override void Validate()
+        {
         }
     }
 }

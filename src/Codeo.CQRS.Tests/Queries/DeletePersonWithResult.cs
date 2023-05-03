@@ -11,6 +11,10 @@ namespace Codeo.CQRS.Tests.Queries
             )
         {
         }
+
+        public override void Validate()
+        {
+        }
     }
 
     public class DeletePersonNoResultWithSideEffects : DeleteCommand
@@ -27,6 +31,10 @@ namespace Codeo.CQRS.Tests.Queries
             )
         {
         }
+
+        public override void Validate()
+        {
+        }
     }
 
     public class DeletePersonWithArbResult : DeleteCommand<Person>
@@ -37,6 +45,10 @@ namespace Codeo.CQRS.Tests.Queries
                 select * from people where id = @otherId;",
                 new { id, otherId }
             )
+        {
+        }
+
+        public override void Validate()
         {
         }
     }

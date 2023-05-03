@@ -28,5 +28,9 @@ namespace Codeo.CQRS.Tests.Commands
             Name = name;
             Enabled = enabled;
         }
+
+        public override void Validate()
+        {
+        }
     }
 }

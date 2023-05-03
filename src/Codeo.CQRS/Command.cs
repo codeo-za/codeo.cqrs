@@ -55,10 +55,7 @@ namespace Codeo.CQRS
         /// <summary>
         /// Validates this instance.
         /// </summary>
-        public virtual void Validate()
-        {
-            // not required to implement
-        }
+        public abstract void Validate();
 
         /// <summary>
         /// Ensures that a transaction scope is available

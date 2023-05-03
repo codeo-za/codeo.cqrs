@@ -158,6 +158,10 @@ namespace Codeo.CQRS.Tests
             {
                 Result = Execute(Operation.Insert, "select sleep(2);", null, 1, _customHandler);
             }
+
+            public override void Validate()
+            {
+            }
         }
 
 
@@ -169,6 +173,10 @@ namespace Codeo.CQRS.Tests
         public class TestCommand : Command
         {
             public override void Execute()
+            {
+            }
+
+            public override void Validate()
             {
             }
         }

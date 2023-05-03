@@ -20,5 +20,9 @@ namespace Codeo.CQRS.Tests.Commands
             IdToUpdate = idToUpdate;
             NewName = newName;
         }
+
+        public override void Validate()
+        {
+        }
     }
 }
