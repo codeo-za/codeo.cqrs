@@ -7,8 +7,13 @@ namespace Codeo.CQRS.Exceptions
     /// </summary>
     public class UniqueConstraintViolationException : DatabaseException
     {
-        public UniqueConstraintViolationException(Operation operation, string queryDescriptor, object predicate, Exception ex)
-            : base(operation, queryDescriptor, predicate, ex)
+        /// <inheritdoc />
+        public UniqueConstraintViolationException(
+            Operation operation,
+            string queryDescriptor,
+            object predicate,
+            Exception ex
+        ) : base(operation, queryDescriptor, predicate, ex)
         {
         }
     }

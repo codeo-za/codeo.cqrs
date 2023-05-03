@@ -12,6 +12,7 @@ using Dapper;
 namespace Codeo.CQRS
 {
     /// <summary>
+    /// Helper class to generate sql statements
     /// original credits:
     /// https://github.com/StackExchange/dapper-dot-net/blob/master/Dapper.SqlBuilder/SqlBuilder.cs
     /// </summary>
@@ -72,6 +73,9 @@ namespace Codeo.CQRS
             }
         }
 
+        /// <summary>
+        /// Provides a template for sql to build for a query
+        /// </summary>
         public class Template
         {
             private readonly string _sql;
@@ -79,6 +83,12 @@ namespace Codeo.CQRS
             private readonly object _initParams;
             private int _dataSeq = -1; // Unresolved
 
+            /// <summary>
+            /// Construct the template with a parent builder, some sql and some parameters
+            /// </summary>
+            /// <param name="builder"></param>
+            /// <param name="sql"></param>
+            /// <param name="parameters"></param>
             public Template(SqlBuilder builder, string sql, object parameters)
             {
                 _initParams = parameters;
@@ -116,6 +126,10 @@ namespace Codeo.CQRS
             private string _rawSql;
             private DynamicParameters _parameters;
 
+            /// <summary>
+            /// Resolves the raw sql that will be run with all
+            /// resolved where clauses
+            /// </summary>
             public string RawSql
             {
                 get
@@ -125,6 +139,10 @@ namespace Codeo.CQRS
                 }
             }
 
+            /// <summary>
+            /// Resolves the final, composed parameters
+            /// from all parts
+            /// </summary>
             public DynamicParameters Parameters
             {
                 get
@@ -135,6 +153,12 @@ namespace Codeo.CQRS
             }
         }
 
+        /// <summary>
+        /// Add a partial template to the builder
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         public Template AddTemplate(
             string sql, 
             object parameters = null)
@@ -171,69 +195,156 @@ namespace Codeo.CQRS
         }
 
 
+        /// <summary>
+        /// Adds an intersection
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         public SqlBuilder Intersect(string sql, object parameters = null)
         {
             return AddClause("intersect", sql, parameters, joiner: "\nINTERSECT\n ", prefix: "\n ", postfix: "\n");
         }
 
+        /// <summary>
+        /// Adds an inner join
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         public SqlBuilder InnerJoin(string sql, object parameters = null)
         {
             return AddClause("innerjoin", sql, parameters, joiner: "\nINNER JOIN ", prefix: "\nINNER JOIN ",
                 postfix: "\n");
         }
 
+        /// <summary>
+        /// Adds a left join
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         public SqlBuilder LeftJoin(string sql, object parameters = null)
         {
             return AddClause("leftjoin", sql, parameters, joiner: "\nLEFT JOIN ", prefix: "\nLEFT JOIN ",
                 postfix: "\n");
         }
 
+        /// <summary>
+        /// Adds a right join
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         public SqlBuilder RightJoin(string sql, object parameters = null)
         {
             return AddClause("rightjoin", sql, parameters, joiner: "\nRIGHT JOIN ", prefix: "\nRIGHT JOIN ",
                 postfix: "\n");
         }
 
+        /// <summary>
+        /// Adds a where clause
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         public SqlBuilder Where(string sql, object parameters = null)
         {
             return AddClause("where", sql, parameters, " AND ", prefix: "WHERE ", postfix: "\n");
         }
 
-        public SqlBuilder OrWhere(string sql, object parameters = null)
+        /// <summary>
+        /// Adds another where clause
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
+        public SqlBuilder AndWhere(string sql, object parameters = null)
         {
             return AddClause("where", sql, parameters, " AND ", prefix: "WHERE ", postfix: "\n", isInclusive: true);
         }
 
+        /// <summary>
+        /// Adds another where clause
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
+        public SqlBuilder OrWhere(string sql, object parameters = null)
+        {
+            return AddClause("where", sql, parameters, " OR ", prefix: "WHERE ", postfix: "\n", isInclusive: true);
+        }
+
+        /// <summary>
+        /// Adds an 'order by' clause
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         public SqlBuilder OrderBy(string sql, object parameters = null)
         {
             return AddClause("orderby", sql, parameters, " , ", prefix: "ORDER BY ", postfix: "\n");
         }
 
+        /// <summary>
+        /// Starts a select query
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         public SqlBuilder Select(string sql, object parameters = null)
         {
             return AddClause("select", sql, parameters, " , ", prefix: "", postfix: "\n");
         }
 
+        /// <summary>
+        /// Adds parameters
+        /// </summary>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         public SqlBuilder AddParameters(object parameters)
         {
             return AddClause("--parameters", "", parameters, "");
         }
 
+        /// <summary>
+        /// Adds an outer join
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         public SqlBuilder Join(string sql, object parameters = null)
         {
             return AddClause("join", sql, parameters, joiner: "\nJOIN ", prefix: "\nJOIN ", postfix: "\n");
         }
 
+        /// <summary>
+        /// Adds a 'group by' clause
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         public SqlBuilder GroupBy(string sql, object parameters = null)
         {
             return AddClause("groupby", sql, parameters, joiner: " , ", prefix: "\nGROUP BY ", postfix: "\n");
         }
 
+        /// <summary>
+        /// Adds an having clause
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         public SqlBuilder Having(string sql, object parameters = null)
         {
             return AddClause("having", sql, parameters, joiner: "\nAND ", prefix: "HAVING ", postfix: "\n");
         }
 
+        /// <summary>
+        /// Adds a limit clause
+        /// </summary>
+        /// <param name="limit"></param>
+        /// <returns></returns>
         public SqlBuilder Limit(int limit)
         {
             return AddClause("limit")
@@ -242,11 +353,20 @@ namespace Codeo.CQRS
                 .Configure();
         }
 
+        /// <summary>
+        /// Removes any existing limit clause
+        /// </summary>
+        /// <returns></returns>
         public SqlBuilder NoLimit()
         {
             return RemoveClause("limit");
         }
 
+        /// <summary>
+        /// Adds an offset clause
+        /// </summary>
+        /// <param name="offset"></param>
+        /// <returns></returns>
         public SqlBuilder Offset(int offset)
         {
             return AddClause("offset")
@@ -255,6 +375,10 @@ namespace Codeo.CQRS
                 .Configure();
         }
 
+        /// <summary>
+        /// Removes any existing offset
+        /// </summary>
+        /// <returns></returns>
         public SqlBuilder NoOffset()
         {
             return RemoveClause("offset");

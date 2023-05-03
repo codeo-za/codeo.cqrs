@@ -15,6 +15,8 @@ For members to be considered for cache keys, they must be:
 - any access modifier (public, protected, private, internal)
   - but prefer public, read-only props: testing later will be easier
 ";
+
+        /// <inheritdoc />
         public InvalidCachePropertiesSpecified(
             params string[] propertyNames
         ) : base(

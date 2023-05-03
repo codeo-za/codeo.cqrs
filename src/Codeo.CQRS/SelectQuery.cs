@@ -7,10 +7,26 @@ using System.Reflection;
 
 namespace Codeo.CQRS
 {
+    /// <summary>
+    /// What to do when a select query expecting a single
+    /// result returns no results
+    /// </summary>
     public enum SingleSelectNoResultStrategies
     {
+        /// <summary>
+        /// Consider the zero-result to be a failure and throw
+        /// an exception (typically EntityNotFound). This is
+        /// the default strategy - override with ReturnDefault
+        /// if that suits your logic flow better, rather than
+        /// catching an exception, which is expensive
+        /// </summary>
         Throw,
-        ReturnNull
+
+        /// <summary>
+        /// Return the default value for the provided return
+        /// type when no match found from the data store
+        /// </summary>
+        ReturnDefault
     }
 
     /// <summary>
@@ -25,6 +41,14 @@ namespace Codeo.CQRS
         private readonly string _sql;
         private readonly object _parameters;
 
+        /// <inheritdoc />
+        protected SelectQuery(
+            string sql
+        ) : this(sql, null)
+        {
+        }
+
+        /// <inheritdoc />
         protected SelectQuery(
             string sql,
             object parameters)
@@ -33,30 +57,34 @@ namespace Codeo.CQRS
             _parameters = parameters;
         }
 
+        /// <inheritdoc />
         protected SelectQuery(
             string sql,
             params (string filterSql, object filterParams)[] filters
-            ): this(sql, SingleSelectNoResultStrategies.Throw, filters)
+        ) : this(sql, SingleSelectNoResultStrategies.Throw, filters)
         {
         }
 
+        /// <inheritdoc />
         protected SelectQuery(
             string sql,
             SingleSelectNoResultStrategies noResultStrategy,
             params (string filterSql, object filterParams)[] filters)
         {
             _noResultStrategy = noResultStrategy;
-            
+
             var builder = new SqlBuilder();
             var template = builder.AddTemplate(sql);
             foreach (var filter in filters)
             {
                 builder.Where(filter.filterSql, filter.filterParams);
             }
+
             _sql = template.RawSql;
             _parameters = template.Parameters;
         }
 
+        /// <inheritdoc />
         protected SelectQuery(
             string sql,
             object parameters,
@@ -73,6 +101,7 @@ namespace Codeo.CQRS
         }
 
 
+        /// <inheritdoc />
         public override void Execute()
         {
             if (IsEnumerableResult)
@@ -143,7 +172,9 @@ namespace Codeo.CQRS
                 );
 
         private static void ThrowWhenAttemptToSelectManyOnNonEnumerable(
+            // ReSharper disable once UnusedParameter.Local
             string sql,
+            // ReSharper disable once UnusedParameter.Local
             object parameters)
         {
             throw new InvalidOperationException(

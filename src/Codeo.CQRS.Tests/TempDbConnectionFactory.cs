@@ -13,9 +13,9 @@ namespace Codeo.CQRS.Tests
             _tempDb = tempDb;
         }
 
-        public IDbConnection Create()
+        public IDbConnection CreateFor(BaseSqlExecutor _)
         {
-            return _tempDb?.CreateConnection();
+            return _tempDb?.OpenConnection();
         }
     }
 }

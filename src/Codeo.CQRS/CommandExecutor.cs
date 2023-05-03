@@ -5,6 +5,9 @@ using Codeo.CQRS.Caching;
 
 namespace Codeo.CQRS
 {
+    /// <summary>
+    /// Executes commands
+    /// </summary>
     public interface ICommandExecutor
     {
         /// <summary>
@@ -28,11 +31,17 @@ namespace Codeo.CQRS
         void Execute(IEnumerable<Command> commands);
     }
 
+    /// <inheritdoc />
     public class CommandExecutor : ICommandExecutor
     {
         private readonly IQueryExecutor _queryExecutor;
         private readonly ICache _cache;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="queryExecutor"></param>
+        /// <param name="cache"></param>
         public CommandExecutor(
             IQueryExecutor queryExecutor,
             ICache cache)

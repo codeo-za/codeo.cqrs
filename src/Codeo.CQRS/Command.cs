@@ -5,12 +5,29 @@ using Codeo.CQRS.Exceptions;
 
 namespace Codeo.CQRS
 {
+    /// <summary>
+    /// The base abstract class for all commands,
+    /// inheriting from the BaseSqlExecutor, so it's
+    /// ready for sql-based commands (though does not
+    /// require sql-based logic at all).
+    /// </summary>
     public abstract class Command : BaseSqlExecutor
     {
-        private List<Action<TransactionEventArgs>> _transactionCompletedHandlers =
+        private readonly List<Action<TransactionEventArgs>> _transactionCompletedHandlers =
             new List<Action<TransactionEventArgs>>();
 
+        /// <summary>
+        /// The query executor to use for sub-queries. If not set,
+        /// this will be set by the default implementation when
+        /// the CommandExecutor executes this command.
+        /// </summary>
         public IQueryExecutor QueryExecutor { get; set; }
+
+        /// <summary>
+        /// The command executor to use for sub-commands. If not set,
+        /// this will be set by the default implementation when
+        /// the CommandExecutor executes this command.
+        /// </summary>
         public ICommandExecutor CommandExecutor { get; set; }
 
         /// <summary>
@@ -24,11 +41,15 @@ namespace Codeo.CQRS
                 {
                     throw new InvalidOperationException("No ambient transaction scope exists");
                 }
+
                 _transactionCompletedHandlers.Add(handler);
                 Transaction.Current.TransactionCompleted += (sender, args) => OnCommandTransactionComplete(args);
             }
         }
-        
+
+        /// <summary>
+        /// The heart of the command logic.
+        /// </summary>
         public abstract void Execute();
 
         /// <summary>
@@ -70,8 +91,18 @@ namespace Codeo.CQRS
         }
     }
 
+    /// <summary>
+    /// A typed command can return a single value of type T.
+    /// Typically, this might be used for something like an
+    /// insert where the id of the inserted item is returned.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public abstract class Command<T> : Command
     {
+        /// <summary>
+        /// The result of this command's execution,
+        /// when successful.
+        /// </summary>
         public T Result { get; set; }
     }
 }

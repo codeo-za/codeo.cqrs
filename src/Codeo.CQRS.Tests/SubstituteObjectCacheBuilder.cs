@@ -1,12 +1,16 @@
 using System.Collections.Generic;
 using System.Runtime.Caching;
 using NSubstitute;
-using PeanutButter.RandomGenerators;
 
 namespace Codeo.CQRS.Tests
 {
-    public class SubstituteObjectCacheBuilder : BuilderBase<SubstituteObjectCacheBuilder, ObjectCache>, IBuilder<ObjectCache>
+    public class SubstituteObjectCacheBuilder
     {
+        public static SubstituteObjectCacheBuilder Create()
+        {
+            return new SubstituteObjectCacheBuilder();
+        }
+
         private IDictionary<string, object> _backingStore;
 
         public SubstituteObjectCacheBuilder WithBackingStore(

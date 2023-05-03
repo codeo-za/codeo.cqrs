@@ -1,7 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <DebugType>Portable</DebugType>
+    <LangVersion>latest</LangVersion>
     <TargetFrameworks>netstandard2.0;net462</TargetFrameworks>
+    <Configurations>Debug;Release</Configurations>
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <PublishRepositoryUrl>True</PublishRepositoryUrl>
+    <IncludeSymbols>True</IncludeSymbols>
     <AssemblyVersion>1.0.0</AssemblyVersion>
     <Dascription>
       Database-engine-agnostic implementation of the Command Query Responsibility Separation pattern
@@ -30,7 +38,7 @@
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="icon.png" Pack="true" PackagePath="content"/>
+    <None Include="icon.png" Pack="true" PackagePath="content" />
   </ItemGroup>
 
   <ItemGroup>

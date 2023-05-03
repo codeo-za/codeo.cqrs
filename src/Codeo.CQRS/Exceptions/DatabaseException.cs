@@ -10,20 +10,39 @@ namespace Codeo.CQRS.Exceptions
     /// </summary>
     public class DatabaseException : Exception
     {
+        /// <summary>
+        /// The type of operation (insert, select, update, delete) being
+        /// performed when the error occurred.
+        /// </summary>
         public Operation Operation { get; set; }
+
+        /// <summary>
+        /// A label or descriptor for the operation to make it easier to
+        /// find &amp; identify issues in logs.
+        /// </summary>
         public string QueryDescriptor { get; set; }
+        /// <summary>
+        /// The predicate / parameters for this query, to help determine
+        /// why it was unsuccessful.
+        /// </summary>
         public object Predicate { get; set; }
 
-        public DatabaseException(Operation operation, string queryDescriptor, object predicate, Exception ex)
+        /// <inheritdoc />
+        public DatabaseException(
+            Operation operation,
+            string queryDescriptor,
+            object predicate,
+            Exception ex
+        )
             : base($@"Error executing query in {
                 queryDescriptor
-                }, Operation: {
-                    operation
-                }, Predicate: {
-                    SafeSerialize(predicate)
-                }, Error: {
-                    ex.Message
-                }", ex)
+            }, Operation: {
+                operation
+            }, Predicate: {
+                SafeSerialize(predicate)
+            }, Error: {
+                ex.Message
+            }", ex)
         {
             Operation = operation;
             QueryDescriptor = queryDescriptor;
@@ -57,23 +76,16 @@ namespace Codeo.CQRS.Exceptions
                         {
                             acc[cur.Name] = $"[error: {inner.Message}]";
                         }
+
                         return acc;
                     }).Select(kvp => $"\"{kvp.Key}\": {kvp.Value}");
                 return string.Join("\n", new[]
-                    {
-                        "{",
-                            string.Join(",\n", members),
-                        "}"
-                        });
+                {
+                    "{",
+                    string.Join(",\n", members),
+                    "}"
+                });
             }
         }
-    }
-
-    public enum Operation
-    {
-        Select,
-        Update,
-        Delete,
-        Insert
     }
 }

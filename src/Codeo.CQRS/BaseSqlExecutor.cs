@@ -12,13 +12,33 @@ using Codeo.CQRS.Caching;
 
 namespace Codeo.CQRS
 {
+    /// <summary>
+    /// Different strategies for cache usage
+    /// </summary>
     public enum CacheUsage
     {
+        /// <summary>
+        /// Read from the cache if available, write to the cache
+        /// on cache miss
+        /// </summary>
         Full,
+
+        /// <summary>
+        /// Read fresh, but write to the cache
+        /// </summary>
         WriteOnly,
+
+        /// <summary>
+        /// Completely bypass cache - no read or write
+        /// </summary>
         Bypass
     }
 
+    /// <summary>
+    /// The base class for commands and queries, with protected methods
+    /// likely to be employed by either in the scenarios of sql relational
+    /// database queries &amp; commands
+    /// </summary>
     public abstract class BaseSqlExecutor
     {
         /// <summary>
@@ -78,15 +98,39 @@ namespace Codeo.CQRS
             ExceptionHandlerCache =
                 new ConcurrentDictionary<Type, Func<Operation, Exception, ExceptionHandlingStrategy>[]>();
 
+        /// <summary>
+        /// The cache implementation to use for this executor - this will
+        /// be set by the CommandExecutor / QueryExecutor to the default
+        /// implementation, if none is already set
+        /// </summary>
         public ICache Cache { get; set; }
+
+        /// <summary>
+        /// The type of cache usage to enforce for this executor - defaulting
+        /// to Full
+        /// </summary>
         public CacheUsage CacheUsage { get; set; } = CacheUsage.Full;
 
+        /// <summary>
+        /// Invalidate the cache for this executor. Only override if you're
+        /// doing work in addition to removing any cached value or if you have
+        /// some custom cache key generation logic.
+        /// </summary>
         protected void InvalidateCache()
         {
             var cacheKey = GenerateCacheKey();
             Cache.Remove(cacheKey);
         }
 
+        /// <summary>
+        /// Passes the logic of a query through the cache as necessary,
+        /// taking into account the CacheUsage for the current executor.
+        /// This will also apply to any sub-queries of a command decorated
+        /// with [Cache]
+        /// </summary>
+        /// <param name="generator"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         protected T Through<T>(Func<T> generator)
         {
             switch (CacheUsage)
@@ -118,6 +162,13 @@ namespace Codeo.CQRS
             }
         }
 
+        /// <summary>
+        /// Caches the result of a query as configured by the [Cache] attribute
+        /// on the current query.
+        /// </summary>
+        /// <param name="result"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         protected T CacheResultIfRequired<T>(
             T result)
         {
@@ -154,40 +205,68 @@ namespace Codeo.CQRS
             return result;
         }
 
+        /// <summary>
+        /// Describes the expiration model for caching an item:
+        /// - absolute / sliding expiration
+        /// - whether or not caching is even enabled
+        /// </summary>
         protected class CacheExpiration
         {
+            /// <summary>
+            /// When set, use this absolute expiration for caching
+            /// </summary>
             public DateTime? AbsoluteExpiration { get; }
+
+            /// <summary>
+            /// When set, use this sliding expiration for caching
+            /// </summary>
             public TimeSpan? SlidingExpiration { get; }
 
+            /// <summary>
+            /// Whether or not to cache at all - if no expiration
+            /// has been set, 
+            /// </summary>
             public bool Enabled =>
-                _enabled &&
-                (AbsoluteExpiration.HasValue ||
-                    SlidingExpiration.HasValue);
+                AbsoluteExpiration.HasValue ||
+                SlidingExpiration.HasValue;
 
-            private readonly bool _enabled;
-
-
-            public CacheExpiration(bool enabled)
+            /// <summary>
+            /// Create a new cache expiration which is effectively disabled
+            /// </summary>
+            public CacheExpiration()
             {
-                _enabled = enabled;
             }
 
-            public CacheExpiration(TimeSpan slidingExpiration) : this(true)
+            /// <summary>
+            /// Create a cache expiration with the provided sliding
+            /// expiration timespan
+            /// </summary>
+            /// <param name="slidingExpiration"></param>
+            public CacheExpiration(TimeSpan slidingExpiration)
             {
                 SlidingExpiration = slidingExpiration;
             }
 
-            public CacheExpiration(DateTime absoluteExpiration) : this(true)
+            /// <summary>
+            /// Create a cache expiration with the provided absolute
+            /// expiration datetime
+            /// </summary>
+            /// <param name="absoluteExpiration"></param>
+            public CacheExpiration(DateTime absoluteExpiration)
             {
                 AbsoluteExpiration = absoluteExpiration;
             }
         }
 
+        /// <summary>
+        /// Generates the caching options for this command / query
+        /// </summary>
+        /// <returns></returns>
         protected virtual CacheExpiration GenerateCacheOptions()
         {
             if (MyCacheAttribute == null)
             {
-                return new CacheExpiration(false);
+                return new CacheExpiration();
             }
 
             return MyCacheAttribute.CacheExpiration == CQRS.CacheExpiration.Absolute
@@ -503,6 +582,7 @@ namespace Codeo.CQRS
         /// <param name="collectionFinder">function to find the collection on the primary item</param>
         /// <typeparam name="TPrimary">type of the primary item</typeparam>
         /// <typeparam name="TSecondary">type of the secondary item</typeparam>
+        /// <typeparam name="TId"></typeparam>
         /// <returns></returns>
         public IEnumerable<TPrimary> SelectOneToMany<TPrimary, TSecondary, TId>(
             string sql,
@@ -615,6 +695,7 @@ namespace Codeo.CQRS
         /// <typeparam name="TPrimary">type of the primary item</typeparam>
         /// <typeparam name="TSecondary">type of the secondary item</typeparam>
         /// <typeparam name="TReturn"></typeparam>
+        /// <typeparam name="TId"></typeparam>
         /// <returns></returns>
         public IEnumerable<TReturn> SelectOneToMany<TPrimary, TSecondary, TReturn, TId>(
             string sql,
@@ -644,6 +725,7 @@ namespace Codeo.CQRS
         /// <typeparam name="TPrimary">type of the primary item</typeparam>
         /// <typeparam name="TSecondary">type of the secondary item</typeparam>
         /// <typeparam name="TReturn"></typeparam>
+        /// <typeparam name="TId"></typeparam>
         /// <returns></returns>
         public IEnumerable<TReturn> SelectOneToMany<TPrimary, TSecondary, TReturn, TId>(
             string sql,
@@ -671,9 +753,11 @@ namespace Codeo.CQRS
         /// <param name="idFinder">function to find the id off of a primary item</param>
         /// <param name="collectionFinder">function to find the collection on the primary item</param>
         /// <param name="returnFactory">factory to create objects of the final return type based on the primary type</param>
+        /// <param name="splitOn"></param>
         /// <typeparam name="TPrimary">type of the primary item</typeparam>
         /// <typeparam name="TSecondary">type of the secondary item</typeparam>
-        /// <typeparam name="TReturn"></typeparam>
+        /// <typeparam name="TReturn">return type</typeparam>
+        /// <typeparam name="TId">type of the Id column</typeparam>
         /// <returns></returns>
         public IEnumerable<TReturn> SelectOneToMany<TPrimary, TSecondary, TReturn, TId>(
             string sql,
@@ -686,7 +770,8 @@ namespace Codeo.CQRS
             var allResults = SelectMulti<TPrimary, TSecondary, ValueTuple<TPrimary, TSecondary>>(
                 sql,
                 parameters,
-                (one, many) => (one, many)
+                (one, many) => (one, many),
+                splitOn
             );
             var lookup = new Dictionary<TId, TReturn>();
             var result = allResults.Aggregate(
@@ -776,14 +861,14 @@ namespace Codeo.CQRS
                 EnsureDapperKnowsAbout<TThird>();
                 using var connection = CreateOpenConnection();
 
-                List<TReturn> Execute(IDbConnection conn)
+                List<TReturn> Exec(IDbConnection conn)
                 {
-                    return conn.Query(sql, function, parameters).ToList();
+                    return conn.Query(sql, function, parameters, splitOn: splitOn).ToList();
                 }
 
                 return SelectRowsOnConnection(
                     connection,
-                    Execute
+                    Exec
                 );
             });
         }
@@ -829,7 +914,7 @@ namespace Codeo.CQRS
                 }
             }
 
-            result ??= new Func<Operation, Exception, ExceptionHandlingStrategy>[0];
+            result ??= Array.Empty<Func<Operation, Exception, ExceptionHandlingStrategy>>();
             ExceptionHandlerCache.TryAdd(exType, result);
 
             // TODO: try to find derived handler? probably travel all the way up to Exception -- would be useful
@@ -943,11 +1028,26 @@ namespace Codeo.CQRS
             return QueryCollection<T>(Operation.Update, sql, parameters);
         }
 
+        /// <summary>
+        /// Performs an update operation where the last sql query in the batch
+        /// is a select, returning only the first item from that select.
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         public T UpdateGetFirst<T>(string sql)
         {
             return UpdateGetFirst<T>(sql, null);
         }
 
+        /// <summary>
+        /// Performs an update operation where the last sql query in the batch
+        /// is a select, returning only the first item from that select.
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         public T UpdateGetFirst<T>(string sql, object parameters)
         {
             return Through(
@@ -955,72 +1055,191 @@ namespace Codeo.CQRS
             );
         }
 
-        public IEnumerable<T> InsertGetList<T>(string sql)
+        /// <summary>
+        /// Performs an update operation where the last sql query in the batch
+        /// is a select, returning all items from that select.
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public IEnumerable<T> UpdateGetAll<T>(string sql)
         {
-            return InsertGetList<T>(sql, null);
+            return UpdateGetAll<T>(sql, null);
         }
 
-        public IEnumerable<T> InsertGetList<T>(string sql, object parameters)
+        /// <summary>
+        /// Performs an update operation where the last sql query in the batch
+        /// is a select, returning all items from that select.
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public IEnumerable<T> UpdateGetAll<T>(string sql, object parameters)
+        {
+            return Through(
+                () => QueryCollection<T>(Operation.Update, sql, parameters)
+            );
+        }
+
+        /// <summary>
+        /// Performs an update operation where the last sql query in the batch
+        /// is a select, returning the results from that query.
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public IEnumerable<T> InsertGetAll<T>(string sql)
+        {
+            return InsertGetAll<T>(sql, null);
+        }
+
+        /// <summary>
+        /// Performs an insert operation where the last sql query in the batch
+        /// is a select, returning the results from that query.
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public IEnumerable<T> InsertGetAll<T>(string sql, object parameters)
         {
             return QueryCollection<T>(Operation.Insert, sql, parameters);
         }
 
+        /// <summary>
+        /// Performs an insert operation where the last sql query in the batch
+        /// is a select, returning all items from that select.
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         public T InsertGetFirst<T>(string sql)
         {
             return InsertGetFirst<T>(sql, null);
         }
 
+        /// <summary>
+        /// Performs an insert operation where the last sql query in the batch
+        /// is a select, returning all items from that select.
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         public T InsertGetFirst<T>(string sql, object parameters)
         {
             return QueryFirst<T>(Operation.Insert, sql, parameters);
         }
 
-        public IEnumerable<T> DeleteGetList<T>(string sql)
+        /// <summary>
+        /// Performs a delete operation where the last sql query in the batch
+        /// is a select, returning all items from that select.
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public IEnumerable<T> DeleteGetAll<T>(string sql)
         {
-            return DeleteGetList<T>(sql, null);
+            return DeleteGetAll<T>(sql, null);
         }
 
-        public IEnumerable<T> DeleteGetList<T>(string sql, object parameters)
+        /// <summary>
+        /// Performs a delete operation where the last sql query in the batch
+        /// is a select, returning all items from that select.
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public IEnumerable<T> DeleteGetAll<T>(string sql, object parameters)
         {
             return QueryCollection<T>(Operation.Delete, sql, parameters);
         }
 
+        /// <summary>
+        /// Performs a delete operation where the last sql query in the batch
+        /// is a select, returning the first item from that select.
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         public T DeleteGetFirst<T>(string sql)
         {
             return DeleteGetFirst<T>(sql, null);
         }
 
+        /// <summary>
+        /// Performs a delete operation where the last sql query in the batch
+        /// is a select, returning the first item from that select.
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         public T DeleteGetFirst<T>(string sql, object parameters)
         {
             return QueryFirst<T>(Operation.Delete, sql, parameters);
         }
 
-
+        /// <summary>
+        /// Executes an update with no return
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <returns></returns>
         public int ExecuteUpdate(string sql)
         {
             return ExecuteUpdate(sql, null);
         }
 
+        /// <summary>
+        /// Executes an update with no return
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         public int ExecuteUpdate(string sql, object parameters)
         {
             return Execute(Operation.Update, sql, parameters);
         }
 
+        /// <summary>
+        /// Executes an insert with no return
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <returns></returns>
         public int ExecuteInsert(string sql)
         {
             return ExecuteInsert(sql, null);
         }
 
+        /// <summary>
+        /// Executes an insert with no return
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         public int ExecuteInsert(string sql, object parameters)
         {
             return Execute(Operation.Insert, sql, parameters);
         }
 
+        /// <summary>
+        /// Executes a delete with no return
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <returns></returns>
         public int ExecuteDelete(string sql)
         {
             return ExecuteDelete(sql, null);
         }
 
+        /// <summary>
+        /// Executes a delete with no return
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         public int ExecuteDelete(string sql, object parameters)
         {
             return Execute(Operation.Delete, sql, parameters);
@@ -1138,6 +1357,15 @@ namespace Codeo.CQRS
             }
         }
 
+        /// <summary>
+        /// The most base mutation execution, returning the number
+        /// of rows affected.
+        /// </summary>
+        /// <param name="operation"></param>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <param name="commandTimeout"></param>
+        /// <returns></returns>
         protected int Execute(
             Operation operation,
             string sql,
@@ -1153,6 +1381,17 @@ namespace Codeo.CQRS
             );
         }
 
+        /// <summary>
+        /// The most base mutation execution, returning the number
+        /// of rows affected, utilizing the provided exception handler.
+        /// </summary>
+        /// <param name="operation"></param>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <param name="commandTimeout"></param>
+        /// <param name="customExceptionHandler"></param>
+        /// <typeparam name="TException"></typeparam>
+        /// <returns></returns>
         protected int Execute<TException>(
             Operation operation,
             string sql,
@@ -1223,6 +1462,9 @@ namespace Codeo.CQRS
             Fluently.Configuration.MapEntityType(type);
         }
 
+        /// <summary>
+        /// Clears all statically-defined exception handlers.
+        /// </summary>
         public static void RemoveAllExceptionHandlers()
         {
             lock (ExceptionHandlers)
@@ -1233,7 +1475,7 @@ namespace Codeo.CQRS
 
         private IDbConnection CreateOpenConnection()
         {
-            var result = ConnectionFactory?.Create()
+            var result = ConnectionFactory?.CreateFor(this)
                 ?? throw new InvalidOperationException(
                     "Please configure a ConnectionFactory to provide new instances of IDbConnection per call to Create()");
             ;

@@ -3,7 +3,7 @@ using System.Data;
 using System.Data.Common;
 using Dapper;
 using NUnit.Framework;
-using PeanutButter.TempDb.MySql;
+using PeanutButter.TempDb.MySql.Data;
 
 namespace Codeo.CQRS.Tests
 {
@@ -22,7 +22,7 @@ namespace Codeo.CQRS.Tests
 
             _db = new TempDBMySql();
             PerformDefaultConfiguration();
-            CreateBasicSchemaWith(_db.CreateConnection());
+            CreateBasicSchemaWith(_db.OpenConnection());
         }
 
         public static void PerformDefaultConfiguration()
@@ -69,7 +69,7 @@ create table departments_tags(
 
         public static IDbConnection ConnectToTempDb()
         {
-            return _db?.CreateConnection() ??
+            return _db?.OpenConnection() ??
                 throw new InvalidOperationException(
                     $"TempDb is not set up"
                 );

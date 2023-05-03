@@ -11,14 +11,29 @@ namespace Codeo.CQRS
         private readonly string _sql;
         private readonly object _parameters;
 
+        /// <summary>
+        /// Convenience: insert with only the provided sql
+        /// </summary>
+        /// <param name="sql"></param>
+        protected InsertCommand(string sql) : this(sql, null)
+        {
+        }
+
+        /// <summary>
+        /// Convenience: insert with only the provided sql and parameters
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
         protected InsertCommand(
             string sql,
-            object parameters = null)
+            object parameters
+        )
         {
             _sql = sql;
             _parameters = parameters;
         }
 
+        /// <inheritdoc />
         public sealed override void Execute()
         {
             ExecuteInsert(_sql, _parameters ?? new { });
@@ -35,14 +50,35 @@ namespace Codeo.CQRS
         private readonly string _sql;
         private readonly object _parameters;
 
+        /// <summary>
+        /// Convenience: insert with only the provided sql,
+        /// returning the value from the first select in
+        /// the batch
+        /// </summary>
+        /// <param name="sql"></param>
+        protected InsertCommand(
+            string sql
+        ) : this(sql, null)
+        {
+        }
+
+        /// <summary>
+        /// Convenience: insert with only the provided sql
+        /// and parameters, returning the value from the
+        /// first select in the batch
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
         protected InsertCommand(
             string sql,
-            object parameters = null)
+            object parameters
+        )
         {
             _sql = sql;
             _parameters = parameters;
         }
 
+        /// <inheritdoc />
         public sealed override void Execute()
         {
             try

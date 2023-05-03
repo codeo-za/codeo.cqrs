@@ -9,20 +9,35 @@ using Newtonsoft.Json;
 
 namespace Codeo.CQRS.Exceptions
 {
+    /// <summary>
+    /// Thrown when the caller expects an entity to exist for
+    /// the provided predicates, but it doesn't
+    /// </summary>
     public class EntityDoesNotExistException : Exception
     {
         /// <summary>
         /// Set to true if you'd like detailed error messages
         /// </summary>
         public static bool DebugEnabled = false;
+
+        /// <summary>
+        /// Name of the type of entity (eg "customer")
+        /// </summary>
         public string EntityName { get; }
+
+        /// <summary>
+        /// What predicates, if any, were used to attempt to
+        /// retrieve the record
+        /// </summary>
         public object Predicates { get; }
 
+        /// <inheritdoc />
         public EntityDoesNotExistException(string sql)
             : this(sql, null, null)
         {
         }
 
+        /// <inheritdoc />
         public EntityDoesNotExistException(
             string entityNameOrSql,
             object predicates
@@ -30,6 +45,7 @@ namespace Codeo.CQRS.Exceptions
         {
         }
 
+        /// <inheritdoc />
         public EntityDoesNotExistException(
             string entityNameOrSql,
             object predicates,

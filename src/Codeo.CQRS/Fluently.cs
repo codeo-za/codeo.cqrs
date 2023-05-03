@@ -6,13 +6,23 @@ using Dapper;
 
 namespace Codeo.CQRS
 {
+    /// <summary>
+    /// Fluent configuration for Codeo.CQRS
+    /// </summary>
     public static class Fluently
     {
+        /// <summary>
+        /// Starts a new configuration chain.
+        /// </summary>
+        /// <returns></returns>
         public static Configuration Configure()
         {
             return new Configuration();
         }
 
+        /// <summary>
+        /// Provides configuration for Codeo.CQRS
+        /// </summary>
         public class Configuration
         {
             internal Configuration()
@@ -20,6 +30,10 @@ namespace Codeo.CQRS
                 WithSnakeCaseMappingEnabled();
             }
 
+            /// <summary>
+            /// Enables snake_case mapping (default)
+            /// </summary>
+            /// <returns></returns>
             public Configuration WithSnakeCaseMappingEnabled()
             {
                 DefaultTypeMap.MatchNamesWithUnderscores = true;
@@ -27,6 +41,10 @@ namespace Codeo.CQRS
                 return this;
             }
 
+            /// <summary>
+            /// Disables snake_case mapping
+            /// </summary>
+            /// <returns></returns>
             public Configuration WithSnakeCaseMappingDisabled()
             {
                 DefaultTypeMap.MatchNamesWithUnderscores = false;
@@ -34,6 +52,10 @@ namespace Codeo.CQRS
                 return this;
             }
 
+            /// <summary>
+            /// Resets all existing Codeo.CQRS configuration
+            /// </summary>
+            /// <returns></returns>
             public Configuration Reset()
             {
                 BaseSqlExecutor.RemoveAllExceptionHandlers();
@@ -42,6 +64,13 @@ namespace Codeo.CQRS
                 return this;
             }
 
+            /// <summary>
+            /// Adds an exception handler to the available collection
+            /// for exceptions of type TException
+            /// </summary>
+            /// <param name="handler"></param>
+            /// <typeparam name="TException"></typeparam>
+            /// <returns></returns>
             public Configuration WithExceptionHandler<TException>(
                 IExceptionHandler<TException> handler)
                 where TException : Exception
@@ -50,6 +79,12 @@ namespace Codeo.CQRS
                 return this;
             }
 
+            /// <summary>
+            /// Removes an existing exception handler, if it is found
+            /// </summary>
+            /// <param name="handler"></param>
+            /// <typeparam name="TException"></typeparam>
+            /// <returns></returns>
             public Configuration WithoutExceptionHandler<TException>(
                 IExceptionHandler<TException> handler)
                 where TException : Exception
@@ -58,32 +93,61 @@ namespace Codeo.CQRS
                 return this;
             }
 
+            /// <summary>
+            /// Register entities from the provided assembly with the Dapper mapper
+            /// </summary>
+            /// <param name="assembly"></param>
+            /// <returns></returns>
             public Configuration WithEntitiesFrom(Assembly assembly)
             {
                 var entityType = typeof(IEntity);
                 return WithEntitiesFrom(
                     assembly,
-                    x => entityType.IsAssignableFrom(x) && x != entityType);
+                    x => entityType.IsAssignableFrom(x) && x != entityType
+                );
             }
 
-            public Configuration WithConnectionFactory(IDbConnectionFactory connectionFactory)
+            /// <summary>
+            /// Provide a connection factory for all subsequent
+            /// commands / queries
+            /// </summary>
+            /// <param name="connectionFactory"></param>
+            /// <returns></returns>
+            public Configuration WithConnectionFactory(
+                IDbConnectionFactory connectionFactory
+            )
             {
                 BaseSqlExecutor.ConnectionFactory = connectionFactory;
                 return this;
             }
 
+            /// <summary>
+            /// Enable more detailed diagnostic error messages
+            /// </summary>
+            /// <returns></returns>
             public Configuration WithDebugMessagesEnabled()
             {
                 EntityDoesNotExistException.DebugEnabled = true;
                 return this;
             }
 
+            /// <summary>
+            /// Enable simpler
+            /// </summary>
+            /// <returns></returns>
             public Configuration WithDebugMessagesDisabled()
             {
                 EntityDoesNotExistException.DebugEnabled = false;
                 return this;
             }
 
+            /// <summary>
+            /// Register entities from the provided assembly where the types
+            /// match a provided discriminator
+            /// </summary>
+            /// <param name="assembly"></param>
+            /// <param name="discriminator"></param>
+            /// <returns></returns>
             public Configuration WithEntitiesFrom(
                 Assembly assembly,
                 Func<Type, bool> discriminator)
@@ -102,6 +166,10 @@ namespace Codeo.CQRS
                 return this;
             }
 
+            /// <summary>
+            /// Remaps all known entity types - required when switching
+            /// mappings between with snake_case and without snake_case
+            /// </summary>
             public static void RemapAllKnownEntities()
             {
                 lock (MapLock)
@@ -117,6 +185,11 @@ namespace Codeo.CQRS
 
             private static readonly object MapLock = new object();
 
+            /// <summary>
+            /// Adds a single type to be mapped. If the type is already known,
+            /// the existing mapping is left intact.
+            /// </summary>
+            /// <param name="type"></param>
             public static void MapEntityType(Type type)
             {
                 lock (MapLock)
@@ -131,17 +204,17 @@ namespace Codeo.CQRS
                     BaseSqlExecutor.KnownMappedTypes.TryAdd(type, true);
                 }
             }
-            
+
             private static CustomPropertyTypeMap Map(Type eType)
             {
                 return new CustomPropertyTypeMap(
                     eType,
                     (type, column) =>
                     {
-                        var columnName = 
+                        var columnName =
                             DefaultTypeMap.MatchNamesWithUnderscores
-                            ? column.Replace("_", "")
-                            : column;
+                                ? column.Replace("_", "")
+                                : column;
                         var mappedProperty =
                             type.GetProperties()
                                 .FirstOrDefault(

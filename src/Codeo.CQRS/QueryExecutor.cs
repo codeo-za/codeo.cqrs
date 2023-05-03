@@ -4,6 +4,9 @@ using Codeo.CQRS.Caching;
 
 namespace Codeo.CQRS
 {
+    /// <summary>
+    /// Executes queries
+    /// </summary>
     public interface IQueryExecutor
     {
         /// <summary>
@@ -27,9 +30,15 @@ namespace Codeo.CQRS
         void Execute(IEnumerable<Query> queries);
     }
 
+    /// <inheritdoc />
     public class QueryExecutor : IQueryExecutor
     {
         private readonly ICache _cache;
+        /// <summary>
+        /// Create a new query executor with the provided default
+        /// cache implementation
+        /// </summary>
+        /// <param name="cache"></param>
         public QueryExecutor(ICache cache)
         {
             _cache = cache;
