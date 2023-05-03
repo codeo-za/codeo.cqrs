@@ -75,9 +75,12 @@ namespace Codeo.CQRS
 
             var builder = new SqlBuilder();
             var template = builder.AddTemplate(sql);
-            foreach (var filter in filters)
+            if (filters is not null)
             {
-                builder.Where(filter.filterSql, filter.filterParams);
+                foreach (var filter in filters)
+                {
+                    builder.Where(filter.filterSql, filter.filterParams);
+                }
             }
 
             _sql = template.RawSql;
