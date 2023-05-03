@@ -52,7 +52,7 @@ namespace Codeo.CQRS.Tests
                     .To.Be.Null();
 
                 // should turn off debug for EntityDoesNotExist
-                Expect(EntityDoesNotExistException.DebugEnabled)
+                Expect(EntityNotFoundException.DebugEnabled)
                     .To.Be.False();
             }
         }

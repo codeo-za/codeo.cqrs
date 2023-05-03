@@ -472,6 +472,7 @@ namespace Codeo.CQRS
 
         /// <summary>
         /// Selects the first matching item from the database
+        /// or throws an EntityDoesNotExist exception if not found
         /// </summary>
         /// <param name="sql"></param>
         /// <typeparam name="T"></typeparam>
@@ -480,6 +481,42 @@ namespace Codeo.CQRS
             string sql)
         {
             return SelectFirst<T>(sql, null);
+        }
+
+        /// <summary>
+        /// Selects the first matching item from the database
+        /// or returns default(T) if not found
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        protected T SelectFirstOrDefault<T>(
+            string sql
+        )
+        {
+            return SelectFirstOrDefault<T>(
+                sql,
+                null
+            );
+        }
+
+        /// <summary>
+        /// Selects the first matching item from the database or
+        /// returns default(T) if not found
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        protected T SelectFirstOrDefault<T>(
+            string sql,
+            object parameters
+        )
+        {
+            return SelectMany<T>(
+                sql,
+                parameters
+            ).FirstOrDefault();
         }
 
         /// <summary>
@@ -1366,7 +1403,7 @@ namespace Codeo.CQRS
                     {
                         if (LooksLikeNoRowsReturned(ex))
                         {
-                            throw new EntityDoesNotExistException(
+                            throw new EntityNotFoundException(
                                 typeof(T).Name,
                                 parameters,
                                 ex

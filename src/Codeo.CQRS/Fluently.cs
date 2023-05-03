@@ -60,7 +60,7 @@ namespace Codeo.CQRS
             {
                 BaseSqlExecutor.RemoveAllExceptionHandlers();
                 BaseSqlExecutor.ConnectionFactory = null;
-                EntityDoesNotExistException.DebugEnabled = false;
+                EntityNotFoundException.DebugEnabled = false;
                 return this;
             }
 
@@ -127,7 +127,7 @@ namespace Codeo.CQRS
             /// <returns></returns>
             public Configuration WithDebugMessagesEnabled()
             {
-                EntityDoesNotExistException.DebugEnabled = true;
+                EntityNotFoundException.DebugEnabled = true;
                 return this;
             }
 
@@ -137,7 +137,7 @@ namespace Codeo.CQRS
             /// <returns></returns>
             public Configuration WithDebugMessagesDisabled()
             {
-                EntityDoesNotExistException.DebugEnabled = false;
+                EntityNotFoundException.DebugEnabled = false;
                 return this;
             }
 

@@ -13,7 +13,7 @@ namespace Codeo.CQRS.Exceptions
     /// Thrown when the caller expects an entity to exist for
     /// the provided predicates, but it doesn't
     /// </summary>
-    public class EntityDoesNotExistException : Exception
+    public class EntityNotFoundException : Exception
     {
         /// <summary>
         /// Set to true if you'd like detailed error messages
@@ -32,13 +32,13 @@ namespace Codeo.CQRS.Exceptions
         public object Predicates { get; }
 
         /// <inheritdoc />
-        public EntityDoesNotExistException(string sql)
+        public EntityNotFoundException(string sql)
             : this(sql, null, null)
         {
         }
 
         /// <inheritdoc />
-        public EntityDoesNotExistException(
+        public EntityNotFoundException(
             string entityNameOrSql,
             object predicates
         ) : this(entityNameOrSql, predicates, null)
@@ -46,7 +46,7 @@ namespace Codeo.CQRS.Exceptions
         }
 
         /// <inheritdoc />
-        public EntityDoesNotExistException(
+        public EntityNotFoundException(
             string entityNameOrSql,
             object predicates,
             Exception innerException

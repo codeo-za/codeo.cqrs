@@ -85,7 +85,7 @@ namespace Codeo.CQRS
             {
                 Result = InsertGetFirst<T>(_sql, _parameters ?? new { });
             }
-            catch (EntityDoesNotExistException ex)
+            catch (EntityNotFoundException ex)
             {
                 throw new InvalidOperationException(
                     $"Unable to InsertGetFirst for {GetType()}. Perhaps you forget to select the last inserted id in your query:\n{_sql}",

@@ -20,14 +20,14 @@ namespace Codeo.CQRS.Tests
     public class TestQueryExecution : TestFixtureRequiringData
     {
         [TestFixture]
-        public class ConvenienceSelectMethods: TestFixtureRequiringData
+        public class ConvenienceSelectMethods : TestFixtureRequiringData
         {
             [Test]
             public void ShouldBeAbleToSelectAList()
             {
                 // Arrange
                 var id = CreatePerson(GetRandomName());
-                
+
                 // Act
                 var result = QueryExecutor.Execute(new AllPeopleInAList());
                 // Assert
@@ -45,7 +45,7 @@ namespace Codeo.CQRS.Tests
             {
                 // Arrange
                 var id = CreatePerson(GetRandomName());
-                
+
                 // Act
                 var result = QueryExecutor.Execute(new AllPeopleInAnArray());
                 // Assert
@@ -56,6 +56,48 @@ namespace Codeo.CQRS.Tests
                 Expect(result)
                     .To.Contain.Exactly(1)
                     .Matched.By(p => p.Id == id);
+            }
+
+            [Test]
+            public void ShouldBeAbleToSelectFirstOrDefault()
+            {
+                // Arrange
+                // Act
+                var result1 = QueryExecutor.Execute(
+                    new PerhapsFindPersonById(-1)
+                );
+                var id = CreatePerson(GetRandomName());
+                var result2 = QueryExecutor.Execute(
+                    new PerhapsFindPersonById(id)
+                );
+                // Assert
+
+                Expect(result1)
+                    .To.Be.Null();
+                Expect(result2)
+                    .To.Be.Matched.By(o => o.Id == id);
+            }
+
+            public class PerhapsFindPersonById : Query<Person>
+            {
+                public int Id { get; }
+
+                public PerhapsFindPersonById(int id)
+                {
+                    Id = id;
+                }
+
+                public override void Execute()
+                {
+                    Result = SelectFirstOrDefault<Person>(
+                        "select * from people where id = @id",
+                        new { id = Id }
+                    );
+                }
+
+                public override void Validate()
+                {
+                }
             }
 
             public class AllPeopleInAnArray : Query<Person[]>
@@ -82,7 +124,7 @@ namespace Codeo.CQRS.Tests
                 }
             }
         }
-        
+
         [TestFixture]
         public class WhenQueryingWithSingleDataSetResults : TestFixtureRequiringData
         {
@@ -330,7 +372,7 @@ namespace Codeo.CQRS.Tests
                     // Act
                     Expect(() =>
                             queryExecutor.Execute(new FindPersonById(-1))
-                        ).To.Throw<EntityDoesNotExistException>()
+                        ).To.Throw<EntityNotFoundException>()
                         .With.Message.Containing(nameof(Person))
                         .And.Containing("does not exist for predicate")
                         .And.Containing("-1");
@@ -350,7 +392,7 @@ namespace Codeo.CQRS.Tests
                     // Act
                     Expect(() =>
                             queryExecutor.Execute(new FindPersonById(-1))
-                        ).To.Throw<EntityDoesNotExistException>()
+                        ).To.Throw<EntityNotFoundException>()
                         .With.Message.Containing(nameof(Person))
                         .And.Containing("does not exist for predicate")
                         .And.Not.Containing("-1");
@@ -395,9 +437,9 @@ namespace Codeo.CQRS.Tests
                     .To.Equal(0, () => $"WTF: expected TimeSpan.Zero to be zero, but it's {TimeSpan.Zero}");
                 // Act
                 using (var scope =
-                    TransactionScopes.ReadCommitted(TransactionScopeOption.RequiresNew
-                    )
-                )
+                       TransactionScopes.ReadCommitted(TransactionScopeOption.RequiresNew
+                       )
+                      )
                 {
                     Expect(() =>
                     {
@@ -560,8 +602,8 @@ namespace Codeo.CQRS.Tests
                 public void ShouldUseCache()
                 {
                     using (new AutoResetter(
-                        UseMemoryCache,
-                        UseNoCache))
+                               UseMemoryCache,
+                               UseNoCache))
                     {
                         // Arrange
                         var expected = GetRandomString(10, 20);
@@ -604,8 +646,8 @@ namespace Codeo.CQRS.Tests
                 public void ShouldAutomaticallyExpire()
                 {
                     using (new AutoResetter(
-                        UseMemoryCache,
-                        UseNoCache))
+                               UseMemoryCache,
+                               UseNoCache))
                     {
                         // Arrange
                         var originalName = GetRandomString(10, 20);
@@ -636,10 +678,10 @@ namespace Codeo.CQRS.Tests
                     var ids = GetRandomCollection<int>(2, 4);
                     var qry = new FindPeopleByIds(ids);
                     var expected = @$"{
-                            nameof(FindPeopleByIds)
-                        }-Ids::{
-                            string.Join(",", qry.Ids)
-                        }";
+                        nameof(FindPeopleByIds)
+                    }-Ids::{
+                        string.Join(",", qry.Ids)
+                    }";
                     // Act
                     var result = qry.GenerateCacheKeyForTesting();
                     // Assert
@@ -848,7 +890,7 @@ namespace Codeo.CQRS.Tests
                 public void ShouldCacheByThatKey()
                 {
                     // Arrange
-                    using var _ =new AutoResetter(UseMemoryCache, UseNoCache);
+                    using var _ = new AutoResetter(UseMemoryCache, UseNoCache);
                     var name = "original"; // GetRandomString(10);
                     var updated = "updated"; // GetAnother(name);
                     var another = "another person"; //GetAnother<string>(new[] { name, updated });
@@ -924,7 +966,7 @@ namespace Codeo.CQRS.Tests
                     new FindPersonById(id)
                 );
             }
-            catch (EntityDoesNotExistException)
+            catch (EntityNotFoundException)
             {
                 return null;
             }
