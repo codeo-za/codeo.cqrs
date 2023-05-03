@@ -33,15 +33,25 @@ namespace Codeo.CQRS
     /// <inheritdoc />
     public class QueryExecutor : IQueryExecutor
     {
-        private readonly ICache _cache;
+        private readonly Func<ICache> _cacheProvider;
+
         /// <summary>
         /// Create a new query executor with the provided default
         /// cache implementation
         /// </summary>
         /// <param name="cache"></param>
-        public QueryExecutor(ICache cache)
+        public QueryExecutor(ICache cache) : this(() => cache)
         {
-            _cache = cache;
+        }
+
+        /// <summary>
+        /// Create a new query executor with the provided default
+        /// cache implementation provider
+        /// </summary>
+        /// <param name="cacheProvider"></param>
+        public QueryExecutor(Func<ICache> cacheProvider)
+        {
+            _cacheProvider = cacheProvider;
         }
         
         /// <summary>
@@ -73,7 +83,7 @@ namespace Codeo.CQRS
             }
 
             query.QueryExecutor = this;
-            query.Cache = query.Cache ?? _cache;
+            query.Cache ??= _cacheProvider();
             query.Validate();
             query.Execute();
         }

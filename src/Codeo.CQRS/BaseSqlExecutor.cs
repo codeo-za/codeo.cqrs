@@ -210,7 +210,7 @@ namespace Codeo.CQRS
         /// - absolute / sliding expiration
         /// - whether or not caching is even enabled
         /// </summary>
-        protected class CacheExpiration
+        protected class CacheExpirationModel
         {
             /// <summary>
             /// When set, use this absolute expiration for caching
@@ -233,7 +233,7 @@ namespace Codeo.CQRS
             /// <summary>
             /// Create a new cache expiration which is effectively disabled
             /// </summary>
-            public CacheExpiration()
+            public CacheExpirationModel()
             {
             }
 
@@ -242,7 +242,7 @@ namespace Codeo.CQRS
             /// expiration timespan
             /// </summary>
             /// <param name="slidingExpiration"></param>
-            public CacheExpiration(TimeSpan slidingExpiration)
+            public CacheExpirationModel(TimeSpan slidingExpiration)
             {
                 SlidingExpiration = slidingExpiration;
             }
@@ -252,7 +252,7 @@ namespace Codeo.CQRS
             /// expiration datetime
             /// </summary>
             /// <param name="absoluteExpiration"></param>
-            public CacheExpiration(DateTime absoluteExpiration)
+            public CacheExpirationModel(DateTime absoluteExpiration)
             {
                 AbsoluteExpiration = absoluteExpiration;
             }
@@ -262,16 +262,17 @@ namespace Codeo.CQRS
         /// Generates the caching options for this command / query
         /// </summary>
         /// <returns></returns>
-        protected virtual CacheExpiration GenerateCacheOptions()
+        // ReSharper disable once VirtualMemberNeverOverridden.Global
+        protected virtual CacheExpirationModel GenerateCacheOptions()
         {
             if (MyCacheAttribute == null)
             {
-                return new CacheExpiration();
+                return new CacheExpirationModel();
             }
 
             return MyCacheAttribute.CacheExpiration == CQRS.CacheExpiration.Absolute
-                ? new CacheExpiration(DateTime.Now.AddSeconds(MyCacheAttribute.TTL))
-                : new CacheExpiration(TimeSpan.FromSeconds(MyCacheAttribute.TTL));
+                ? new CacheExpirationModel(DateTime.Now.AddSeconds(MyCacheAttribute.TTL))
+                : new CacheExpirationModel(TimeSpan.FromSeconds(MyCacheAttribute.TTL));
         }
 
         private CacheAttribute MyCacheAttribute =>
@@ -297,6 +298,7 @@ namespace Codeo.CQRS
         /// sufficient for your needs
         /// </summary>
         /// <returns></returns>
+        // ReSharper disable once VirtualMemberNeverOverridden.Global
         protected virtual string GenerateCacheKey()
         {
             if (MyCacheAttribute == null)
@@ -385,7 +387,7 @@ namespace Codeo.CQRS
         /// <param name="sql"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public IEnumerable<T> SelectMany<T>(string sql)
+        protected IEnumerable<T> SelectMany<T>(string sql)
         {
             return SelectMany<T>(sql, null);
         }
@@ -397,7 +399,7 @@ namespace Codeo.CQRS
         /// <param name="parameters"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public IEnumerable<T> SelectMany<T>(
+        protected IEnumerable<T> SelectMany<T>(
             string sql,
             object parameters)
         {
@@ -415,12 +417,66 @@ namespace Codeo.CQRS
         }
 
         /// <summary>
+        /// Selects zero or more items from the database
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        protected List<T> SelectList<T>(string sql)
+        {
+            return SelectList<T>(sql, null);
+        }
+
+        /// <summary>
+        /// Selects zero or more items from the database
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        protected T[] SelectArray<T>(string sql)
+        {
+            return SelectArray<T>(sql, null);
+        }
+
+        /// <summary>
+        /// Selects zero or more items from the database
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        protected T[] SelectArray<T>(
+            string sql,
+            object parameters
+        )
+        {
+            return SelectMany<T>(sql, parameters)
+                .ToArray();
+        }
+
+        /// <summary>
+        /// Selects zero or more items from the database
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="parameters"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        protected List<T> SelectList<T>(
+            string sql,
+            object parameters
+        )
+        {
+            return SelectMany<T>(sql, parameters)
+                .ToList();
+        }
+
+        /// <summary>
         /// Selects the first matching item from the database
         /// </summary>
         /// <param name="sql"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public T SelectFirst<T>(
+        protected T SelectFirst<T>(
             string sql)
         {
             return SelectFirst<T>(sql, null);
@@ -433,7 +489,7 @@ namespace Codeo.CQRS
         /// <param name="parameters"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public T SelectFirst<T>(
+        protected T SelectFirst<T>(
             string sql,
             object parameters)
         {
@@ -454,7 +510,7 @@ namespace Codeo.CQRS
         /// <param name="sql">The SQL query</param>
         /// <param name="function">The function on how to handle the returned results</param>
         /// <returns></returns>
-        public IEnumerable<TReturn> SelectMulti<TFirst, TSecond, TReturn>(
+        protected IEnumerable<TReturn> SelectMulti<TFirst, TSecond, TReturn>(
             string sql,
             Func<TFirst, TSecond, TReturn> function)
 
@@ -475,7 +531,7 @@ namespace Codeo.CQRS
         /// <param name="function">The function on how to handle the returned results</param>
         /// <param name="parameters">The parameters.</param>
         /// <returns></returns>
-        public IEnumerable<TReturn> SelectMulti<TFirst, TSecond, TReturn>(
+        protected IEnumerable<TReturn> SelectMulti<TFirst, TSecond, TReturn>(
             string sql,
             object parameters,
             Func<TFirst, TSecond, TReturn> function)
@@ -499,7 +555,7 @@ namespace Codeo.CQRS
         /// <param name="parameters">The parameters.</param>
         /// <param name="splitOn">Sets the name of the column to split type mappings at - other members default this to "Id"</param>
         /// <returns></returns>
-        public IEnumerable<TReturn> SelectMulti<TFirst, TSecond, TReturn>(
+        protected IEnumerable<TReturn> SelectMulti<TFirst, TSecond, TReturn>(
             string sql,
             object parameters,
             Func<TFirst, TSecond, TReturn> function,
@@ -511,7 +567,7 @@ namespace Codeo.CQRS
                 EnsureDapperKnowsAbout<TSecond>();
                 using var connection = CreateOpenConnection();
 
-                List<TReturn> Execute(IDbConnection conn)
+                List<TReturn> Exec(IDbConnection conn)
                 {
                     return conn.Query(
                         sql,
@@ -521,7 +577,7 @@ namespace Codeo.CQRS
                     ).ToList();
                 }
 
-                return SelectRowsOnConnection(connection, Execute);
+                return SelectRowsOnConnection(connection, Exec);
             });
         }
 
@@ -535,7 +591,7 @@ namespace Codeo.CQRS
         /// <typeparam name="TPrimary">type of the primary item</typeparam>
         /// <typeparam name="TSecondary">type of the secondary item</typeparam>
         /// <returns></returns>
-        public IEnumerable<TPrimary> SelectOneToMany<TPrimary, TSecondary>(
+        protected IEnumerable<TPrimary> SelectOneToMany<TPrimary, TSecondary>(
             string sql,
             Func<TPrimary, int> idFinder,
             Func<TPrimary, IList<TSecondary>> collectionFinder)
@@ -559,7 +615,7 @@ namespace Codeo.CQRS
         /// <typeparam name="TPrimary">type of the primary item</typeparam>
         /// <typeparam name="TSecondary">type of the secondary item</typeparam>
         /// <returns></returns>
-        public IEnumerable<TPrimary> SelectOneToMany<TPrimary, TSecondary>(
+        protected IEnumerable<TPrimary> SelectOneToMany<TPrimary, TSecondary>(
             string sql,
             object parameters,
             Func<TPrimary, int> idFinder,
@@ -584,7 +640,7 @@ namespace Codeo.CQRS
         /// <typeparam name="TSecondary">type of the secondary item</typeparam>
         /// <typeparam name="TId"></typeparam>
         /// <returns></returns>
-        public IEnumerable<TPrimary> SelectOneToMany<TPrimary, TSecondary, TId>(
+        protected IEnumerable<TPrimary> SelectOneToMany<TPrimary, TSecondary, TId>(
             string sql,
             Func<TPrimary, TId> idFinder,
             Func<TPrimary, IList<TSecondary>> collectionFinder
@@ -610,7 +666,7 @@ namespace Codeo.CQRS
         /// <typeparam name="TSecondary">type of the secondary item</typeparam>
         /// <typeparam name="TId">Type of the identifier on TPrimary</typeparam>
         /// <returns></returns>
-        public IEnumerable<TPrimary> SelectOneToMany<TPrimary, TSecondary, TId>(
+        protected IEnumerable<TPrimary> SelectOneToMany<TPrimary, TSecondary, TId>(
             string sql,
             object parameters,
             Func<TPrimary, TId> idFinder,
@@ -638,7 +694,7 @@ namespace Codeo.CQRS
         /// <typeparam name="TSecondary">type of the secondary item</typeparam>
         /// <typeparam name="TReturn"></typeparam>
         /// <returns></returns>
-        public IEnumerable<TReturn> SelectOneToMany<TPrimary, TSecondary, TReturn>(
+        protected IEnumerable<TReturn> SelectOneToMany<TPrimary, TSecondary, TReturn>(
             string sql,
             Func<TPrimary, int> idFinder,
             Func<TReturn, IList<TSecondary>> collectionFinder,
@@ -667,7 +723,7 @@ namespace Codeo.CQRS
         /// <typeparam name="TSecondary">type of the secondary item</typeparam>
         /// <typeparam name="TReturn"></typeparam>
         /// <returns></returns>
-        public IEnumerable<TReturn> SelectOneToMany<TPrimary, TSecondary, TReturn>(
+        protected IEnumerable<TReturn> SelectOneToMany<TPrimary, TSecondary, TReturn>(
             string sql,
             object parameters,
             Func<TPrimary, int> idFinder,
@@ -697,7 +753,7 @@ namespace Codeo.CQRS
         /// <typeparam name="TReturn"></typeparam>
         /// <typeparam name="TId"></typeparam>
         /// <returns></returns>
-        public IEnumerable<TReturn> SelectOneToMany<TPrimary, TSecondary, TReturn, TId>(
+        protected IEnumerable<TReturn> SelectOneToMany<TPrimary, TSecondary, TReturn, TId>(
             string sql,
             Func<TPrimary, TId> idFinder,
             Func<TReturn, IList<TSecondary>> collectionFinder,
@@ -727,7 +783,7 @@ namespace Codeo.CQRS
         /// <typeparam name="TReturn"></typeparam>
         /// <typeparam name="TId"></typeparam>
         /// <returns></returns>
-        public IEnumerable<TReturn> SelectOneToMany<TPrimary, TSecondary, TReturn, TId>(
+        protected IEnumerable<TReturn> SelectOneToMany<TPrimary, TSecondary, TReturn, TId>(
             string sql,
             object parameters,
             Func<TPrimary, TId> idFinder,
@@ -759,7 +815,7 @@ namespace Codeo.CQRS
         /// <typeparam name="TReturn">return type</typeparam>
         /// <typeparam name="TId">type of the Id column</typeparam>
         /// <returns></returns>
-        public IEnumerable<TReturn> SelectOneToMany<TPrimary, TSecondary, TReturn, TId>(
+        protected IEnumerable<TReturn> SelectOneToMany<TPrimary, TSecondary, TReturn, TId>(
             string sql,
             object parameters,
             Func<TPrimary, TId> idFinder,
@@ -802,7 +858,7 @@ namespace Codeo.CQRS
         /// <typeparam name="TReturn">The type of the returned result object.</typeparam>
         /// <param name="sql">The SQL query</param>
         /// <param name="function">The function on how to handle the returned results</param>
-        public IEnumerable<TReturn> SelectMulti<TFirst, TSecond, TThird, TReturn>(
+        protected IEnumerable<TReturn> SelectMulti<TFirst, TSecond, TThird, TReturn>(
             string sql,
             Func<TFirst, TSecond, TThird, TReturn> function)
         {
@@ -848,7 +904,7 @@ namespace Codeo.CQRS
         /// <param name="parameters">The parameters.</param>
         /// <param name="splitOn">Sets the name of the column to split type mappings at - other members default this to "Id"</param>
         /// <returns></returns>
-        public IEnumerable<TReturn> SelectMulti<TFirst, TSecond, TThird, TReturn>(
+        protected IEnumerable<TReturn> SelectMulti<TFirst, TSecond, TThird, TReturn>(
             string sql,
             object parameters,
             Func<TFirst, TSecond, TThird, TReturn> function,
@@ -946,7 +1002,7 @@ namespace Codeo.CQRS
         /// </summary>
         /// <param name="sql">The SQL query.</param>
         /// <param name="callback">The callback action on how to handle the results.</param>
-        public void SelectMulti(
+        protected void SelectMulti(
             string sql,
             Action<SqlMapper.GridReader> callback)
         {
@@ -964,7 +1020,7 @@ namespace Codeo.CQRS
         /// <param name="sql">The SQL query.</param>
         /// <param name="parameters">The parameters.</param>
         /// <param name="callback">The callback action on how to handle the results.</param>
-        public void SelectMulti(
+        protected void SelectMulti(
             string sql,
             object parameters,
             Action<SqlMapper.GridReader> callback)
@@ -1008,7 +1064,7 @@ namespace Codeo.CQRS
         /// <param name="sql"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public IEnumerable<T> UpdateGetList<T>(
+        protected IEnumerable<T> UpdateGetList<T>(
             string sql)
         {
             return UpdateGetList<T>(sql, null);
@@ -1021,7 +1077,7 @@ namespace Codeo.CQRS
         /// <param name="parameters"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public IEnumerable<T> UpdateGetList<T>(
+        protected IEnumerable<T> UpdateGetList<T>(
             string sql,
             object parameters)
         {
@@ -1035,7 +1091,7 @@ namespace Codeo.CQRS
         /// <param name="sql"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public T UpdateGetFirst<T>(string sql)
+        protected T UpdateGetFirst<T>(string sql)
         {
             return UpdateGetFirst<T>(sql, null);
         }
@@ -1048,7 +1104,7 @@ namespace Codeo.CQRS
         /// <param name="parameters"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public T UpdateGetFirst<T>(string sql, object parameters)
+        protected T UpdateGetFirst<T>(string sql, object parameters)
         {
             return Through(
                 () => QueryFirst<T>(Operation.Update, sql, parameters)
@@ -1062,7 +1118,7 @@ namespace Codeo.CQRS
         /// <param name="sql"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public IEnumerable<T> UpdateGetAll<T>(string sql)
+        protected IEnumerable<T> UpdateGetAll<T>(string sql)
         {
             return UpdateGetAll<T>(sql, null);
         }
@@ -1075,7 +1131,7 @@ namespace Codeo.CQRS
         /// <param name="parameters"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public IEnumerable<T> UpdateGetAll<T>(string sql, object parameters)
+        protected IEnumerable<T> UpdateGetAll<T>(string sql, object parameters)
         {
             return Through(
                 () => QueryCollection<T>(Operation.Update, sql, parameters)
@@ -1089,7 +1145,7 @@ namespace Codeo.CQRS
         /// <param name="sql"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public IEnumerable<T> InsertGetAll<T>(string sql)
+        protected IEnumerable<T> InsertGetAll<T>(string sql)
         {
             return InsertGetAll<T>(sql, null);
         }
@@ -1102,7 +1158,7 @@ namespace Codeo.CQRS
         /// <param name="parameters"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public IEnumerable<T> InsertGetAll<T>(string sql, object parameters)
+        protected IEnumerable<T> InsertGetAll<T>(string sql, object parameters)
         {
             return QueryCollection<T>(Operation.Insert, sql, parameters);
         }
@@ -1114,7 +1170,7 @@ namespace Codeo.CQRS
         /// <param name="sql"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public T InsertGetFirst<T>(string sql)
+        protected T InsertGetFirst<T>(string sql)
         {
             return InsertGetFirst<T>(sql, null);
         }
@@ -1127,7 +1183,7 @@ namespace Codeo.CQRS
         /// <param name="parameters"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public T InsertGetFirst<T>(string sql, object parameters)
+        protected T InsertGetFirst<T>(string sql, object parameters)
         {
             return QueryFirst<T>(Operation.Insert, sql, parameters);
         }
@@ -1139,7 +1195,7 @@ namespace Codeo.CQRS
         /// <param name="sql"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public IEnumerable<T> DeleteGetAll<T>(string sql)
+        protected IEnumerable<T> DeleteGetAll<T>(string sql)
         {
             return DeleteGetAll<T>(sql, null);
         }
@@ -1152,7 +1208,7 @@ namespace Codeo.CQRS
         /// <param name="parameters"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public IEnumerable<T> DeleteGetAll<T>(string sql, object parameters)
+        protected IEnumerable<T> DeleteGetAll<T>(string sql, object parameters)
         {
             return QueryCollection<T>(Operation.Delete, sql, parameters);
         }
@@ -1164,7 +1220,7 @@ namespace Codeo.CQRS
         /// <param name="sql"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public T DeleteGetFirst<T>(string sql)
+        protected T DeleteGetFirst<T>(string sql)
         {
             return DeleteGetFirst<T>(sql, null);
         }
@@ -1177,7 +1233,7 @@ namespace Codeo.CQRS
         /// <param name="parameters"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public T DeleteGetFirst<T>(string sql, object parameters)
+        protected T DeleteGetFirst<T>(string sql, object parameters)
         {
             return QueryFirst<T>(Operation.Delete, sql, parameters);
         }
@@ -1187,7 +1243,7 @@ namespace Codeo.CQRS
         /// </summary>
         /// <param name="sql"></param>
         /// <returns></returns>
-        public int ExecuteUpdate(string sql)
+        protected int ExecuteUpdate(string sql)
         {
             return ExecuteUpdate(sql, null);
         }
@@ -1198,7 +1254,7 @@ namespace Codeo.CQRS
         /// <param name="sql"></param>
         /// <param name="parameters"></param>
         /// <returns></returns>
-        public int ExecuteUpdate(string sql, object parameters)
+        protected int ExecuteUpdate(string sql, object parameters)
         {
             return Execute(Operation.Update, sql, parameters);
         }
@@ -1208,7 +1264,7 @@ namespace Codeo.CQRS
         /// </summary>
         /// <param name="sql"></param>
         /// <returns></returns>
-        public int ExecuteInsert(string sql)
+        protected int ExecuteInsert(string sql)
         {
             return ExecuteInsert(sql, null);
         }
@@ -1219,7 +1275,7 @@ namespace Codeo.CQRS
         /// <param name="sql"></param>
         /// <param name="parameters"></param>
         /// <returns></returns>
-        public int ExecuteInsert(string sql, object parameters)
+        protected int ExecuteInsert(string sql, object parameters)
         {
             return Execute(Operation.Insert, sql, parameters);
         }
@@ -1229,7 +1285,7 @@ namespace Codeo.CQRS
         /// </summary>
         /// <param name="sql"></param>
         /// <returns></returns>
-        public int ExecuteDelete(string sql)
+        protected int ExecuteDelete(string sql)
         {
             return ExecuteDelete(sql, null);
         }
@@ -1240,7 +1296,7 @@ namespace Codeo.CQRS
         /// <param name="sql"></param>
         /// <param name="parameters"></param>
         /// <returns></returns>
-        public int ExecuteDelete(string sql, object parameters)
+        protected int ExecuteDelete(string sql, object parameters)
         {
             return Execute(Operation.Delete, sql, parameters);
         }

@@ -20,7 +20,71 @@ namespace Codeo.CQRS.Tests
     public class TestQueryExecution : TestFixtureRequiringData
     {
         [TestFixture]
-        public class WhenQueryingWithSingleDataSetResults : TestQueryExecution
+        public class ConvenienceSelectMethods: TestFixtureRequiringData
+        {
+            [Test]
+            public void ShouldBeAbleToSelectAList()
+            {
+                // Arrange
+                var id = CreatePerson(GetRandomName());
+                
+                // Act
+                var result = QueryExecutor.Execute(new AllPeopleInAList());
+                // Assert
+                Expect(result)
+                    .Not.To.Be.Empty();
+                Expect(result)
+                    .To.Be.An.Instance.Of<List<Person>>();
+                Expect(result)
+                    .To.Contain.Exactly(1)
+                    .Matched.By(p => p.Id == id);
+            }
+
+            [Test]
+            public void ShouldBeAbleToSelectAnArray()
+            {
+                // Arrange
+                var id = CreatePerson(GetRandomName());
+                
+                // Act
+                var result = QueryExecutor.Execute(new AllPeopleInAnArray());
+                // Assert
+                Expect(result)
+                    .Not.To.Be.Empty();
+                Expect(result)
+                    .To.Be.An.Instance.Of<Person[]>();
+                Expect(result)
+                    .To.Contain.Exactly(1)
+                    .Matched.By(p => p.Id == id);
+            }
+
+            public class AllPeopleInAnArray : Query<Person[]>
+            {
+                public override void Execute()
+                {
+                    Result = SelectArray<Person>("select * from people");
+                }
+
+                public override void Validate()
+                {
+                }
+            }
+
+            public class AllPeopleInAList : Query<List<Person>>
+            {
+                public override void Execute()
+                {
+                    Result = SelectList<Person>("select * from people");
+                }
+
+                public override void Validate()
+                {
+                }
+            }
+        }
+        
+        [TestFixture]
+        public class WhenQueryingWithSingleDataSetResults : TestFixtureRequiringData
         {
             [Test]
             public void ShouldBeAbleToReadSingleResult()
@@ -117,7 +181,7 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class WhenQueryingWithJoinsRequiringPerRowMapping : TestQueryExecution
+        public class WhenQueryingWithJoinsRequiringPerRowMapping : TestFixtureRequiringData
         {
             [Test]
             public void ShouldBeAbleToQueryAcrossTwoIncludedTables()
@@ -219,7 +283,7 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class WhenQueryingWithMultipleResultSets : TestQueryExecution
+        public class WhenQueryingWithMultipleResultSets : TestFixtureRequiringData
         {
             [Test]
             public void ShouldBeAbleToUseAllResultSets()
@@ -252,10 +316,10 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class SingleResultFailures : TestQueryExecution
+        public class SingleResultFailures : TestFixtureRequiringData
         {
             [TestFixture]
-            public class WhenDebugMessagesEnabled : SingleResultFailures
+            public class WhenDebugMessagesEnabled : TestFixtureRequiringData
             {
                 [Test]
                 public void ShouldGiveDetailedMessage()
@@ -275,7 +339,7 @@ namespace Codeo.CQRS.Tests
             }
 
             [TestFixture]
-            public class WhenDebugMessagesDisabled : SingleResultFailures
+            public class WhenDebugMessagesDisabled : TestFixtureRequiringData
             {
                 [Test]
                 public void ShouldGiveGenericMessage()
@@ -296,7 +360,7 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class WhenTransactionIsRequired : TestQueryExecution
+        public class WhenTransactionIsRequired : TestFixtureRequiringData
         {
             [Test]
             public void ShouldThrowIfNoneAvailable()
@@ -356,7 +420,7 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class ProvidingMultipleFilters : TestQueryExecution
+        public class ProvidingMultipleFilters : TestFixtureRequiringData
         {
             [Test]
             public void ShouldBeAbleToProvideMultipleFilters()
@@ -397,7 +461,7 @@ namespace Codeo.CQRS.Tests
 
 
         [TestFixture]
-        public class WhenUpdating : TestQueryExecution
+        public class WhenUpdating : TestFixtureRequiringData
         {
             [Test]
             public void ShouldUpdate()
@@ -416,7 +480,7 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class WhenDeleting : TestQueryExecution
+        public class WhenDeleting : TestFixtureRequiringData
         {
             [Test]
             public void ShouldDelete()
@@ -448,10 +512,10 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class WhenDirectingCachingViaAttribute : TestQueryExecution
+        public class WhenDirectingCachingViaAttribute : TestFixtureRequiringData
         {
             [TestFixture]
-            public class WhenNotDecorated : WhenDirectingCachingViaAttribute
+            public class WhenNotDecorated : TestFixtureRequiringData
             {
                 [Test]
                 public void ShouldNotCache()
@@ -490,7 +554,7 @@ namespace Codeo.CQRS.Tests
             }
 
             [TestFixture]
-            public class OnSelectQueries : WhenDirectingCachingViaAttribute
+            public class OnSelectQueries : TestFixtureRequiringData
             {
                 [Test]
                 public void ShouldUseCache()
@@ -585,10 +649,10 @@ namespace Codeo.CQRS.Tests
             }
 
             [TestFixture]
-            public class ShouldNeverUseOnTransformQueries : WhenDirectingCachingViaAttribute
+            public class ShouldNeverUseOnTransformQueries : TestFixtureRequiringData
             {
                 [TestFixture]
-                public class WhenIsDelete : ShouldNeverUseOnTransformQueries
+                public class WhenIsDelete : TestFixtureRequiringData
                 {
                     [Test]
                     public void ShouldNotUse()
@@ -646,7 +710,7 @@ namespace Codeo.CQRS.Tests
                 }
 
                 [TestFixture]
-                public class WhenIsInsert : ShouldNeverUseOnTransformQueries
+                public class WhenIsInsert : TestFixtureRequiringData
                 {
                     [Test]
                     public void ShouldNotUse()
@@ -697,7 +761,7 @@ namespace Codeo.CQRS.Tests
                 }
 
                 [TestFixture]
-                public class WhenIsUpdate : ShouldNeverUseOnTransformQueries
+                public class WhenIsUpdate : TestFixtureRequiringData
                 {
                     [Test]
                     public void ShouldNotUse()
@@ -761,7 +825,7 @@ namespace Codeo.CQRS.Tests
             }
 
             [TestFixture]
-            public class WhenSpecifiedCacheKeyPropsNotFound : TestQueryExecution
+            public class WhenSpecifiedCacheKeyPropsNotFound : TestFixtureRequiringData
             {
                 [Test]
                 public void ShouldThrow()
@@ -778,44 +842,42 @@ namespace Codeo.CQRS.Tests
             }
 
             [TestFixture]
-            public class WhenSpecifiedCacheKeyPropsArePrivate : TestQueryExecution
+            public class WhenSpecifiedCacheKeyPropsArePrivate : TestFixtureRequiringData
             {
                 [Test]
                 public void ShouldCacheByThatKey()
                 {
                     // Arrange
-                    using (new AutoResetter(UseMemoryCache, UseNoCache))
-                    {
-                        var name = "original"; // GetRandomString(10);
-                        var updated = "updated"; // GetAnother(name);
-                        var another = "another person"; //GetAnother<string>(new[] { name, updated });
-                        var id = CreatePerson(name);
-                        var otherId = CreatePerson(another);
-                        var query = new FindPersonByIdWithPrivateCacheProp(id);
-                        // Act
-                        var result1 = QueryExecutor.Execute(query);
-                        UpdatePersonName(id, updated);
-                        var result2 = QueryExecutor.Execute(query);
-                        var result3 = QueryExecutor.Execute(
-                            new FindPersonByIdWithPrivateCacheProp(otherId));
-                        // Assert
-                        // should be updated in the database
-                        Expect(FindPersonById(id).Name)
-                            .To.Equal(updated);
-                        // should have the original value
-                        Expect(result1.Name)
-                            .To.Equal(name);
-                        // should have the cached value
-                        Expect(result2.Name)
-                            .To.Equal(name);
-                        // should not get the cached value for a different id
-                        Expect(result3.Name)
-                            .To.Equal(another);
-                    }
+                    using var _ =new AutoResetter(UseMemoryCache, UseNoCache);
+                    var name = "original"; // GetRandomString(10);
+                    var updated = "updated"; // GetAnother(name);
+                    var another = "another person"; //GetAnother<string>(new[] { name, updated });
+                    var id = CreatePerson(name);
+                    var otherId = CreatePerson(another);
+                    var query = new FindPersonByIdWithPrivateCacheProp(id);
+                    // Act
+                    var result1 = QueryExecutor.Execute(query);
+                    UpdatePersonName(id, updated);
+                    var result2 = QueryExecutor.Execute(query);
+                    var result3 = QueryExecutor.Execute(
+                        new FindPersonByIdWithPrivateCacheProp(otherId));
+                    // Assert
+                    // should be updated in the database
+                    Expect(FindPersonById(id).Name)
+                        .To.Equal(updated);
+                    // should have the original value
+                    Expect(result1.Name)
+                        .To.Equal(name);
+                    // should have the cached value
+                    Expect(result2.Name)
+                        .To.Equal(name);
+                    // should not get the cached value for a different id
+                    Expect(result3.Name)
+                        .To.Equal(another);
                 }
             }
 
-            private string NameOfPerson(int id)
+            private static string NameOfPerson(int id)
             {
                 return QueryExecutor.Execute(
                     new FindPersonById(id)
@@ -838,7 +900,7 @@ namespace Codeo.CQRS.Tests
             private static void UseNoCache()
             {
                 var cache = new NoCache();
-                QueryExecutor = new QueryExecutor(cache);
+                QueryExecutor = new QueryExecutor(() => cache);
                 CommandExecutor = new CommandExecutor(QueryExecutor, cache);
             }
 
@@ -850,11 +912,11 @@ namespace Codeo.CQRS.Tests
             }
         }
 
-        private static ICache NoCache = new NoCache();
+        private static readonly ICache NoCache = new NoCache();
         private static IQueryExecutor QueryExecutor = new QueryExecutor(NoCache);
         private static ICommandExecutor CommandExecutor = new CommandExecutor(QueryExecutor, NoCache);
 
-        private Person FindPersonById(int id)
+        private static Person FindPersonById(int id)
         {
             try
             {
@@ -868,21 +930,21 @@ namespace Codeo.CQRS.Tests
             }
         }
 
-        private int CreateDepartment(string name)
+        private static int CreateDepartment(string name)
         {
             return CommandExecutor.Execute(
                 new CreateDepartment(name)
             );
         }
 
-        private int CreatePerson(string name)
+        private static int CreatePerson(string name)
         {
             return CommandExecutor.Execute(
                 new CreatePerson(name)
             );
         }
 
-        private void AssociatePersonWithDepartment(
+        private static void AssociatePersonWithDepartment(
             int personId,
             int departmentId
         )
@@ -895,7 +957,7 @@ namespace Codeo.CQRS.Tests
             );
         }
 
-        private IEnumerable<Department> FindDepartmentsById(
+        private static IEnumerable<Department> FindDepartmentsById(
             params int[] ids)
         {
             return QueryExecutor.Execute(
