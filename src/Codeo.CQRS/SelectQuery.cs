@@ -158,7 +158,7 @@ namespace Codeo.CQRS
         }
 
         private static readonly MethodInfo SelectListMethodInfo
-            = typeof(Query<T>).GetMethods(BindingFlags.Public | BindingFlags.Instance)
+            = typeof(Query<T>).GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
                 .FirstOrDefault(mi => mi.Name == (nameof(SelectMany)) &&
                     mi.HasParameters(typeof(string), typeof(object)));
 
