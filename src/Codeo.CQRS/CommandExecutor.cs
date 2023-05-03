@@ -34,22 +34,39 @@ namespace Codeo.CQRS
     /// <inheritdoc />
     public class CommandExecutor : ICommandExecutor
     {
-        private readonly IQueryExecutor _queryExecutor;
-        private readonly ICache _cache;
+        private readonly Func<IQueryExecutor> _queryExecutorFactory;
+        private readonly Func<ICache> _cacheFactory;
 
         /// <summary>
-        /// 
+        /// Creates the CommandExecutor with
+        /// a QueryExecutor to provide to sub-queries
+        /// and a Cache service
         /// </summary>
         /// <param name="queryExecutor"></param>
         /// <param name="cache"></param>
         public CommandExecutor(
             IQueryExecutor queryExecutor,
-            ICache cache)
+            ICache cache
+        ): this(() => queryExecutor, () => cache)
         {
-            _queryExecutor = queryExecutor;
-            _cache = cache;
         }
-        
+
+        /// <summary>
+        /// Creates the CommandExecutor with factories for
+        /// the QueryExecutor to provide to sub-queries and
+        /// the Cache implementation
+        /// </summary>
+        /// <param name="queryExecutorFactory"></param>
+        /// <param name="cacheFactory"></param>
+        public CommandExecutor(
+            Func<IQueryExecutor> queryExecutorFactory,
+            Func<ICache> cacheFactory
+        )
+        {
+            _queryExecutorFactory = queryExecutorFactory;
+            _cacheFactory = cacheFactory;
+        }
+
         /// <summary>
         /// Executes the specified command.
         /// </summary>
@@ -61,9 +78,9 @@ namespace Codeo.CQRS
                 throw new ArgumentNullException(nameof(command));
             }
 
-            command.QueryExecutor ??= _queryExecutor;
+            command.QueryExecutor ??= _queryExecutorFactory();
             command.CommandExecutor ??= this;
-            command.Cache ??= _cache;
+            command.Cache ??= _cacheFactory();
             command.Validate();
             command.Execute();
         }

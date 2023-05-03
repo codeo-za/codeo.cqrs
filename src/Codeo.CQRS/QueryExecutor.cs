@@ -40,7 +40,9 @@ namespace Codeo.CQRS
         /// cache implementation
         /// </summary>
         /// <param name="cache"></param>
-        public QueryExecutor(ICache cache) : this(() => cache)
+        public QueryExecutor(
+            ICache cache
+        ) : this(() => cache)
         {
         }
 
@@ -53,7 +55,7 @@ namespace Codeo.CQRS
         {
             _cacheProvider = cacheProvider;
         }
-        
+
         /// <summary>
         /// Executes the specified query.
         /// </summary>
