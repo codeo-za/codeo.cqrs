@@ -16,5 +16,9 @@ namespace Codeo.CQRS.Tests.Queries
         {
             DepartmentIds = departmentIds;
         }
+
+        public override void Validate()
+        {
+        }
     }
 }

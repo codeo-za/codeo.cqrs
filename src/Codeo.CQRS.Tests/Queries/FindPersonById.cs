@@ -25,5 +25,9 @@ namespace Codeo.CQRS.Tests.Queries
                 "select * from people where id = @id;", new { Id }
             );
         }
+
+        public override void Validate()
+        {
+        }
     }
 }

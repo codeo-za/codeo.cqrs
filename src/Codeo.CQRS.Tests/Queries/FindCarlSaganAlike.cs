@@ -7,11 +7,19 @@ namespace Codeo.CQRS.Tests.Queries
         public FindCarlSaganAlike() : base("select * from people where name = 'Carl Sagan';")
         {
         }
+
+        public override void Validate()
+        {
+        }
     }
 
     public class FindCarlSaganAlikes : SelectQuery<IEnumerable<PersonLike>>
     {
         public FindCarlSaganAlikes() : base("select * from people where name = 'Carl Sagan';")
+        {
+        }
+
+        public override void Validate()
         {
         }
     }

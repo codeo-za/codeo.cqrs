@@ -18,5 +18,9 @@ namespace Codeo.CQRS.Tests.Queries
                     };
                 });
         }
+
+        public override void Validate()
+        {
+        }
     }
 }

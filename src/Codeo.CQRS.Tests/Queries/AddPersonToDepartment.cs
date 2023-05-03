@@ -21,5 +21,9 @@ namespace Codeo.CQRS.Tests.Queries
             PersonId = personId;
             DepartmentId = departmentId;
         }
+
+        public override void Validate()
+        {
+        }
     }
 }
