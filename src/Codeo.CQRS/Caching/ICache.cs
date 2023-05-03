@@ -5,7 +5,7 @@ namespace Codeo.CQRS.Caching
     /// <summary>
     /// Represents a class that can be used to store cached information.
     /// </summary>
-    public interface ICache: IDisposable
+    public interface ICache : IDisposable
     {
         /// <summary>
         /// Determines whether the cache contains an item with the specified key.
@@ -33,17 +33,13 @@ namespace Codeo.CQRS.Caching
         void Set(string key, object value, DateTime absoluteExpiration);
 
         /// <summary>
-        /// Caches <c>value</c> with the specified <c>key</c>, for a specified amount of time.
+        /// Caches <c>value</c> with the specified <c>key</c>, for a SLIDING specified amount of time.
+        /// Whenever the item is accessed in the cache, the expiration time will be extended. WARNING:
+        /// this means that hot data is likely to remain in the cache and never be updated.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
-        /// <param name="slidingExpiration">
-        /// The amount of time the item should remain in the cache before getting removed.
-        /// If the item is accessed, this time will reset to 0.
-        /// WARNING: this makes sliding expiration a bad idea for "hot" data:
-        /// "hot" data which is updated will never be evicted from the cache
-        /// so updates won't come through
-        /// </param>
+        /// <param name="slidingExpiration">The amount of time the item should remain in the cache before getting removed.  If the item is accessed, this time will reset to 0.</param>
         void Set(string key, object value, TimeSpan slidingExpiration);
 
         /// <summary>
@@ -106,8 +102,8 @@ namespace Codeo.CQRS.Caching
         void Remove(string key);
 
         /// <summary>
-        /// Removes all items from the cache.
+        /// Removes all items from the cache
         /// </summary>
-        void RemoveAll();
+        void Clear();
     }
 }

@@ -5,10 +5,17 @@ using System.Runtime.Caching;
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("Codeo.CQRS.Tests")]
+
 namespace Codeo.CQRS.Caching
 {
+    /// <summary>
+    /// Provides a simple in-memory cache, wrapping System.Runtime.Caching.ObjectCache
+    /// </summary>
     public class MemoryCache : ICache
     {
+        /// <summary>
+        /// The default cache item policy to ob
+        /// </summary>
         public static readonly CacheItemPolicy DefaultCachePolicy = new CacheItemPolicy();
 
         // for testing only
@@ -16,10 +23,10 @@ namespace Codeo.CQRS.Caching
         private readonly ObjectCache _actual;
 
         /// <summary>
-        /// Constructs a MemoryCache backed by the
+        /// Constructs a MemoryCache backed by
         /// System.Runtime.Caching.MemoryCache.Default
         /// </summary>
-        public MemoryCache() : 
+        public MemoryCache() :
             this(System.Runtime.Caching.MemoryCache.Default)
         {
         }
@@ -35,13 +42,15 @@ namespace Codeo.CQRS.Caching
             string name,
             long cacheSizeInMb,
             int physicalMemoryLimitPercentage,
-            TimeSpan pollingInterval): this (
+            TimeSpan pollingInterval
+        ) : this(
             name,
             CreateSettingsFrom(
                 cacheSizeInMb,
                 physicalMemoryLimitPercentage,
-                pollingInterval)
+                pollingInterval
             )
+        )
         {
         }
 
@@ -64,8 +73,9 @@ namespace Codeo.CQRS.Caching
         /// <param name="name"></param>
         /// <param name="settings"></param>
         private MemoryCache(
-            string name, 
-            NameValueCollection settings)
+            string name,
+            NameValueCollection settings
+        )
         {
             _actual = new System.Runtime.Caching.MemoryCache(name, settings);
         }
@@ -83,14 +93,26 @@ namespace Codeo.CQRS.Caching
             };
         }
 
+        /// <summary>
+        /// Tests if the provided key can be found in the cache.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
         public bool ContainsKey(string key)
         {
             return _actual.Contains(key);
         }
 
+        /// <summary>
+        /// Sets (or overwrites) the item in the cache identified by the provided key,
+        /// using the default caching policy.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="value"></param>
         public void Set(
             string key,
-            object value)
+            object value
+        )
         {
             SetInternal(
                 key,
@@ -99,10 +121,18 @@ namespace Codeo.CQRS.Caching
             );
         }
 
+        /// <summary>
+        /// Set (or overwrite) the value in the cache identified by the provided
+        /// key for the given absolute expiration datetime.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="value"></param>
+        /// <param name="absoluteExpiration"></param>
         public void Set(
             string key,
             object value,
-            DateTime absoluteExpiration)
+            DateTime absoluteExpiration
+        )
         {
             SetInternal(
                 key,
@@ -111,10 +141,18 @@ namespace Codeo.CQRS.Caching
             );
         }
 
+        /// <summary>
+        /// Set (or overwrite) the value in the cache identified by the provided
+        /// key for the given sliding expiration datetime.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="value"></param>
+        /// <param name="slidingExpiration"></param>
         public void Set(
             string key,
             object value,
-            TimeSpan slidingExpiration)
+            TimeSpan slidingExpiration
+        )
         {
             SetInternal(
                 key,
@@ -123,11 +161,22 @@ namespace Codeo.CQRS.Caching
             );
         }
 
+        /// <summary>
+        /// Retrieves the keyed value from the cache.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
         public object Get(string key)
         {
             return _actual.Get(key);
         }
 
+        /// <summary>
+        /// Retrieves the typed keyed value from the cache
+        /// </summary>
+        /// <param name="key"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         public T Get<T>(string key)
         {
             var result = _actual.Get(key);
@@ -160,9 +209,18 @@ namespace Codeo.CQRS.Caching
             }
         }
 
+        /// <summary>
+        /// Attempt to retrieve the keyed value from the cache - when
+        /// not found, return the default value for T
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="defaultValue"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         public T GetOrDefault<T>(
             string key,
-            T defaultValue)
+            T defaultValue
+        )
         {
             var result = _actual.Get(key);
             return result is null
@@ -170,9 +228,19 @@ namespace Codeo.CQRS.Caching
                 : TryCast<T>(result);
         }
 
+        /// <summary>
+        /// Attempt to retrieve the value from the cache, and, if not
+        /// found, execute the generator, insert into the cache, and
+        /// return that value.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="generator"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         public T GetOrSet<T>(
             string key,
-            Func<T> generator)
+            Func<T> generator
+        )
         {
             return FetchOrGenerate(
                 key,
@@ -184,16 +252,29 @@ namespace Codeo.CQRS.Caching
         private T SetInternal<T>(
             string key,
             T value,
-            CacheItemPolicy policy)
+            CacheItemPolicy policy
+        )
         {
             _actual.Set(key, value, policy);
             return value;
         }
 
+        /// <summary>
+        /// Attempt to retrieve the value from the cache, and, if not
+        /// found, execute the generator, insert into the cache, with
+        /// the provided sliding expiration timespan and return that
+        /// value.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="generator"></param>
+        /// <param name="slidingExpiration"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         public T GetOrSet<T>(
             string key,
             Func<T> generator,
-            TimeSpan slidingExpiration)
+            TimeSpan slidingExpiration
+        )
         {
             return FetchOrGenerate(
                 key,
@@ -202,10 +283,22 @@ namespace Codeo.CQRS.Caching
             );
         }
 
+        /// <summary>
+        /// Attempt to retrieve the value from the cache, and, if not
+        /// found, execute the generator, insert into the cache, with
+        /// the provided absolute expiration timespan and return that
+        /// value.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="generator"></param>
+        /// <param name="absoluteExpiration"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         public T GetOrSet<T>(
             string key,
             Func<T> generator,
-            DateTime absoluteExpiration)
+            DateTime absoluteExpiration
+        )
         {
             return FetchOrGenerate(
                 key,
@@ -250,13 +343,20 @@ namespace Codeo.CQRS.Caching
             return true;
         }
 
+        /// <summary>
+        /// Removes an item from the cache, if it is in there.
+        /// </summary>
+        /// <param name="key"></param>
         public void Remove(
             string key)
         {
             _actual.Remove(key);
         }
 
-        public void RemoveAll()
+        /// <summary>
+        /// Clears the entire cache
+        /// </summary>
+        public void Clear()
         {
             lock (_actual)
             {
@@ -285,6 +385,9 @@ namespace Codeo.CQRS.Caching
             };
         }
 
+        /// <summary>
+        /// Disposes the underlying object cache.
+        /// </summary>
         public void Dispose()
         {
             var disposable = _actual as IDisposable;

@@ -263,7 +263,7 @@ namespace Codeo.CQRS.Tests
             }
 
             [TestFixture]
-            public class RemoveAll
+            public class Clear
             {
                 [Test]
                 public void ShouldNotThrow()
@@ -271,7 +271,7 @@ namespace Codeo.CQRS.Tests
                     // Arrange
                     var sut = Create();
                     // Act
-                    Expect(() => sut.RemoveAll())
+                    Expect(() => sut.Clear())
                         .Not.To.Throw();
                     // Assert
                 }
