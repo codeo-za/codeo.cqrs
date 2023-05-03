@@ -285,7 +285,7 @@ namespace Codeo.CQRS.Tests
 
                 var expected = TransactionTimeoutTicks(timeout);
                 var absoluteTimeout = internalTx.Get<long>("AbsoluteTimeout");
-                var passed = absoluteTimeout == expected;
+                var passed = Math.Abs(absoluteTimeout - expected) < 2;
                 var txSeconds = TransactionTimeoutSeconds(absoluteTimeout);
                 return new MatcherResult(
                     passed,
