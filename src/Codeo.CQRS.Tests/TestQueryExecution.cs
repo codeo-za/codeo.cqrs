@@ -9,10 +9,14 @@ using Codeo.CQRS.Tests.Commands;
 using Codeo.CQRS.Tests.Models;
 using Codeo.CQRS.Tests.Queries;
 using NExpect;
+using NExpect.Implementations;
+using NExpect.Interfaces;
+using NExpect.MatcherLogic;
 using NUnit.Framework;
 using PeanutButter.Utils;
 using static PeanutButter.RandomGenerators.RandomValueGen;
 using static NExpect.Expectations;
+using MemoryCache = Codeo.CQRS.Caching.MemoryCache;
 
 namespace Codeo.CQRS.Tests
 {
@@ -501,7 +505,6 @@ namespace Codeo.CQRS.Tests
             }
         }
 
-
         [TestFixture]
         public class WhenUpdating : TestFixtureRequiringData
         {
@@ -596,97 +599,203 @@ namespace Codeo.CQRS.Tests
             }
 
             [TestFixture]
+            public class CachingQueries
+            {
+                // CachingQuery is a shorthand: reduces caching options
+                // to either all-in or write-only, and is how many consumers
+                // will expect to work with caching
+
+                [TestFixture]
+                public class WhenUseCacheIsTrue : TestFixtureRequiringData
+                {
+                    [Test]
+                    public void ShouldReadFromCache()
+                    {
+                        // Arrange
+                        using var _ = UseMemoryCacheOnce();
+                        Expect(QueryExecutor)
+                            .To.Have.MemoryCache();
+                        var name1 = GetRandomName();
+                        var id = CreatePerson(name1);
+                        var sut = new FindPersonByIdCaching(id, true);
+                        Expect(sut.UseCache)
+                            .To.Be.True();
+                        var name2 = GetAnother(name1, GetRandomName);
+                        // Act
+                        var first = QueryExecutor.Execute(
+                            new FindPersonByIdCaching(
+                                id,
+                                true
+                            )
+                        );
+                        UpdatePersonName(id, name2);
+                        var second = QueryExecutor.Execute(
+                            new FindPersonByIdCaching(
+                                id,
+                                true
+                            )
+                        );
+                        // Assert
+                        Expect(first.Name)
+                            .To.Equal(name1, () => "Should retrieve the original name");
+                        Expect(second.Name)
+                            .To.Equal(name1, () => "Should not see updated name");
+                    }
+                }
+
+                [TestFixture]
+                public class WhenUseCacheIsFalse : TestFixtureRequiringData
+                {
+                    [Test]
+                    public void ShouldOnlyWriteToCache()
+                    {
+                        // Arrange
+                        var memCache = new MemoryCache();
+                        memCache.Clear();
+                        Expect(memCache.Count)
+                            .To.Equal(
+                                0, () => $"Cached keys: {memCache.Keys.JoinWith(",")}");
+                        using var _ = UseCacheOnce(memCache);
+                        Expect(QueryExecutor)
+                            .To.Have.MemoryCache();
+                        var name1 = GetRandomName();
+                        var id = CreatePerson(name1);
+                        var sut = new FindPersonByIdCaching(id, true);
+                        Expect(sut.UseCache)
+                            .To.Be.True();
+                        var name2 = GetAnother(name1, GetRandomName);
+                        var cacheKey = sut.CacheKey;
+                        // Act
+                        
+                        var first = QueryExecutor.Execute(
+                            new FindPersonByIdCaching(
+                                id,
+                                false
+                            )
+                        );
+                        Expect(memCache.Count)
+                            .To.Equal(1);
+                        Expect(memCache.ContainsKey(cacheKey))
+                            .To.Be.True();
+                        UpdatePersonName(id, name2);
+                        var second = QueryExecutor.Execute(
+                            new FindPersonByIdCaching(
+                                id,
+                                false
+                            )
+                        );
+                        Expect(memCache.Count)
+                            .To.Equal(1);
+                        Expect(memCache.ContainsKey(cacheKey))
+                            .To.Be.True();
+                        // Assert
+                        Expect(first.Name)
+                            .To.Equal(name1, () => "Should retrieve the original name");
+                        Expect(second.Name)
+                            .To.Equal(name2, () => "Should read updated name");
+                        var cached = memCache.Get<Person>(cacheKey);
+                        Expect(cached.Name)
+                            .To.Equal(name2, () => "Latest query result should be cached");
+                    }
+                }
+            }
+
+            [TestFixture]
             public class OnSelectQueries : TestFixtureRequiringData
             {
-                [Test]
-                public void ShouldUseCache()
+                [TestFixture]
+                public class WhenQueryIsDecoratedWithCacheAttribute
                 {
-                    using (new AutoResetter(
-                               UseMemoryCache,
-                               UseNoCache))
+                    [Test]
+                    public void ShouldUseCache()
+                    {
+                        using (new AutoResetter(
+                                   UseMemoryCache,
+                                   UseNoCache))
+                        {
+                            // Arrange
+                            var expected = GetRandomString(10, 20);
+                            var unexpected = GetAnother(expected);
+                            var id = CreatePerson(expected);
+                            var query = new FindPersonById(id);
+                            // Act
+                            var inDb = QueryExecutor.Execute(query);
+                            CommandExecutor.Execute(new UpdatePersonName(id, unexpected));
+                            var shouldBeCached = QueryExecutor.Execute(query);
+                            // Assert
+                            Expect(inDb.Name)
+                                .To.Equal(expected);
+                            Expect(shouldBeCached.Name)
+                                .To.Equal(expected, () => $"Should get cached original name: {expected}");
+                        }
+                    }
+
+                    [Test]
+                    public void ShouldNotUseCacheWhenCacheKeyPropertiesDiffer()
                     {
                         // Arrange
-                        var expected = GetRandomString(10, 20);
-                        var unexpected = GetAnother(expected);
-                        var id = CreatePerson(expected);
-                        var query = new FindPersonById(id);
+                        var name1 = GetRandomString(10, 20);
+                        var name2 = GetAnother(name1);
+                        var id1 = CreatePerson(name1);
+                        var id2 = CreatePerson(name2);
+                        var query1 = new FindPersonById(id1);
+                        var query2 = new FindPersonById(id2);
                         // Act
-                        var inDb = QueryExecutor.Execute(query);
-                        CommandExecutor.Execute(new UpdatePersonName(id, unexpected));
-                        var shouldBeCached = QueryExecutor.Execute(query);
+                        var person1 = QueryExecutor.Execute(query1);
+                        var person2 = QueryExecutor.Execute(query2);
                         // Assert
-                        Expect(inDb.Name)
+                        Expect(person1.Name)
+                            .To.Equal(name1);
+                        Expect(person2.Name)
+                            .To.Equal(name2);
+                    }
+
+                    [Test]
+                    public void ShouldAutomaticallyExpire()
+                    {
+                        using (new AutoResetter(
+                                   UseMemoryCache,
+                                   UseNoCache))
+                        {
+                            // Arrange
+                            var originalName = GetRandomString(10, 20);
+                            var newName = GetAnother(originalName);
+                            var id = CreatePerson(originalName);
+                            var query = new FindPersonByIdShortLived(id);
+                            // Act
+                            var inDb = QueryExecutor.Execute(query);
+                            CommandExecutor.Execute(new UpdatePersonName(id, newName));
+                            var shouldBeCached = QueryExecutor.Execute(query);
+                            Thread.Sleep(1500);
+                            var shouldNotBeCached = QueryExecutor.Execute(query);
+                            // Assert
+                            Expect(inDb.Name)
+                                .To.Equal(originalName);
+                            Expect(shouldBeCached.Name)
+                                .To.Equal(originalName, () => $"Should get cached original name: {originalName}");
+                            Expect(shouldNotBeCached.Name)
+                                .To.Equal(newName,
+                                    () => $"Should have expired the cached item and retrieved new name: {newName}");
+                        }
+                    }
+
+                    [Test]
+                    public void CollectionPropertiesInCacheKeysShouldIncludeAllValues()
+                    {
+                        // Arrange
+                        var ids = GetRandomCollection<int>(2, 4);
+                        var qry = new FindPeopleByIds(ids);
+                        var expected = @$"{
+                            nameof(FindPeopleByIds)
+                        }-Ids::{
+                            string.Join(",", qry.Ids)
+                        }";
+                        // Act
+                        var result = qry.GenerateCacheKeyForTesting();
+                        // Assert
+                        Expect(result)
                             .To.Equal(expected);
-                        Expect(shouldBeCached.Name)
-                            .To.Equal(expected, () => $"Should get cached original name: {expected}");
                     }
-                }
-
-                [Test]
-                public void ShouldNotUseCacheWhenCacheKeyPropertiesDiffer()
-                {
-                    // Arrange
-                    var name1 = GetRandomString(10, 20);
-                    var name2 = GetAnother(name1);
-                    var id1 = CreatePerson(name1);
-                    var id2 = CreatePerson(name2);
-                    var query1 = new FindPersonById(id1);
-                    var query2 = new FindPersonById(id2);
-                    // Act
-                    var person1 = QueryExecutor.Execute(query1);
-                    var person2 = QueryExecutor.Execute(query2);
-                    // Assert
-                    Expect(person1.Name)
-                        .To.Equal(name1);
-                    Expect(person2.Name)
-                        .To.Equal(name2);
-                }
-
-                [Test]
-                public void ShouldAutomaticallyExpire()
-                {
-                    using (new AutoResetter(
-                               UseMemoryCache,
-                               UseNoCache))
-                    {
-                        // Arrange
-                        var originalName = GetRandomString(10, 20);
-                        var newName = GetAnother(originalName);
-                        var id = CreatePerson(originalName);
-                        var query = new FindPersonByIdShortLived(id);
-                        // Act
-                        var inDb = QueryExecutor.Execute(query);
-                        CommandExecutor.Execute(new UpdatePersonName(id, newName));
-                        var shouldBeCached = QueryExecutor.Execute(query);
-                        Thread.Sleep(1500);
-                        var shouldNotBeCached = QueryExecutor.Execute(query);
-                        // Assert
-                        Expect(inDb.Name)
-                            .To.Equal(originalName);
-                        Expect(shouldBeCached.Name)
-                            .To.Equal(originalName, () => $"Should get cached original name: {originalName}");
-                        Expect(shouldNotBeCached.Name)
-                            .To.Equal(newName,
-                                () => $"Should have expired the cached item and retrieved new name: {newName}");
-                    }
-                }
-
-                [Test]
-                public void CollectionPropertiesInCacheKeysShouldIncludeAllValues()
-                {
-                    // Arrange
-                    var ids = GetRandomCollection<int>(2, 4);
-                    var qry = new FindPeopleByIds(ids);
-                    var expected = @$"{
-                        nameof(FindPeopleByIds)
-                    }-Ids::{
-                        string.Join(",", qry.Ids)
-                    }";
-                    // Act
-                    var result = qry.GenerateCacheKeyForTesting();
-                    // Assert
-                    Expect(result)
-                        .To.Equal(expected);
                 }
             }
 
@@ -890,7 +999,7 @@ namespace Codeo.CQRS.Tests
                 public void ShouldCacheByThatKey()
                 {
                     // Arrange
-                    using var _ = new AutoResetter(UseMemoryCache, UseNoCache);
+                    using var _ = UseMemoryCacheOnce();
                     var name = "original"; // GetRandomString(10);
                     var updated = "updated"; // GetAnother(name);
                     var another = "another person"; //GetAnother<string>(new[] { name, updated });
@@ -949,8 +1058,31 @@ namespace Codeo.CQRS.Tests
             private static void UseMemoryCache()
             {
                 var cache = new MemoryCache();
+                cache.Clear();
                 QueryExecutor = new QueryExecutor(cache);
                 CommandExecutor = new CommandExecutor(QueryExecutor, cache);
+            }
+
+            private static void UseCache(ICache cache)
+            {
+                QueryExecutor = new QueryExecutor(cache);
+                CommandExecutor = new CommandExecutor(QueryExecutor, cache);
+            }
+
+            private static IDisposable UseCacheOnce(ICache cache)
+            {
+                return AutoResetter.Create(
+                    () => UseCache(cache),
+                    UseNoCache
+                );
+            }
+
+            private static IDisposable UseMemoryCacheOnce()
+            {
+                return AutoResetter.Create(
+                    UseMemoryCache,
+                    UseNoCache
+                );
             }
         }
 
@@ -1007,6 +1139,32 @@ namespace Codeo.CQRS.Tests
                     ids
                 )
             );
+        }
+    }
+
+    public static class QueryExecutorExtensions
+    {
+        public static IMore<IQueryExecutor> MemoryCache(
+            this IHave<IQueryExecutor> have
+        )
+        {
+            return have.AddMatcher(actual =>
+            {
+                if (actual is not QueryExecutor qe)
+                {
+                    return new EnforcedMatcherResult(
+                        false,
+                        () => "Can only assert against the cache of a real QueryExecutor instance"
+                    );
+                }
+
+                var cacheImplementation = qe.CurrentCache;
+                var passed = cacheImplementation is MemoryCache;
+                return new MatcherResult(
+                    passed,
+                    () => $"Expected {passed.AsNot()}to find MemoryCache"
+                );
+            });
         }
     }
 }

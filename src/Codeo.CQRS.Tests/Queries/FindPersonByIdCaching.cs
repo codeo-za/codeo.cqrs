@@ -1,25 +1,23 @@
+using System;
 using Codeo.CQRS.Tests.Models;
 
 namespace Codeo.CQRS.Tests.Queries
 {
-    [Cache(1, nameof(Id))]
-    public class FindPersonByIdShortLived : Query<Person>
+    [Cache(60)]
+    public class FindPersonByIdCaching : CachingQuery<Person>
     {
         public int Id { get; }
-        public bool ShouldInvalidateCache { get; set; }
 
-        public FindPersonByIdShortLived(int id)
+        public FindPersonByIdCaching(
+            int id,
+            bool useCache
+        ) : base(useCache)
         {
             Id = id;
         }
 
         public override void Execute()
         {
-            if (ShouldInvalidateCache)
-            {
-                InvalidateCache();
-            }
-
             Result = SelectFirst<Person>(
                 "select * from people where id = @id;", new { Id }
             );
@@ -27,7 +25,13 @@ namespace Codeo.CQRS.Tests.Queries
 
         public override void Validate()
         {
+            if (Id <= 0)
+            {
+                throw new ArgumentException(
+                    "Invalid Id set",
+                    nameof(Id)
+                );
+            }
         }
     }
-
 }

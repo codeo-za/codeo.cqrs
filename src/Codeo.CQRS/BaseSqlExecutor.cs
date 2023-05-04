@@ -318,6 +318,15 @@ namespace Codeo.CQRS
                 parts
             );
         }
+        
+        /// <summary>
+        /// Produces the key that would be used when caching
+        /// results from this query. To change behavior, either
+        /// direct cache-key generation via [Cache] attributes,
+        /// or for complete control, override GenerateCacheKey
+        /// on the query itself.
+        /// </summary>
+        public string CacheKey => GenerateCacheKey();
 
         private string PropertyKeyFor(PropertyInfo cur)
         {

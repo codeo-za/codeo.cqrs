@@ -93,6 +93,12 @@ namespace Codeo.CQRS.Caching
             };
         }
 
+        /// <inheritdoc />
+        /// ObjectCache has a GetCount() method, but it appears to not always
+        ///  be accurate: I've had a test fail where enumeration is empty, but
+        ///  GetCount() returns 1.
+        public int Count => _actual.Count();
+
         /// <summary>
         /// Tests if the provided key can be found in the cache.
         /// </summary>
@@ -360,13 +366,23 @@ namespace Codeo.CQRS.Caching
         {
             lock (_actual)
             {
-                var keys = _actual.Select(kvp => kvp.Key).ToArray();
-                foreach (var key in keys)
+                while (true)
                 {
-                    _actual.Remove(key);
+                    var keys = _actual.Select(kvp => kvp.Key).ToArray();
+                    if (keys.Length == 0)
+                    {
+                        break;
+                    }
+
+                    foreach (var key in keys)
+                    {
+                        _actual.Remove(key);
+                    }
                 }
             }
         }
+        
+        internal string[] Keys => _actual.Select(kvp => kvp.Key).ToArray();
 
         private static CacheItemPolicy SlidingExpirationFor(TimeSpan expiration)
         {

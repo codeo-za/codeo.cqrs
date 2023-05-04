@@ -7,6 +7,9 @@ namespace Codeo.CQRS.Caching
     /// </summary>
     public class NoCache : ICache
     {
+        /// <inheritdoc />
+        public int Count => 0;
+
         /// <summary>
         /// Always returns false
         /// </summary>

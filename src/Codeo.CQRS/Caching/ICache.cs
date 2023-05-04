@@ -8,6 +8,11 @@ namespace Codeo.CQRS.Caching
     public interface ICache : IDisposable
     {
         /// <summary>
+        /// How many items are currently in the cache
+        /// </summary>
+        int Count { get; }
+
+        /// <summary>
         /// Determines whether the cache contains an item with the specified key.
         /// </summary>
         /// <param name="key">The key.</param>

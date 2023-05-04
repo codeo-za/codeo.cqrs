@@ -33,6 +33,7 @@ namespace Codeo.CQRS
     /// <inheritdoc />
     public class QueryExecutor : IQueryExecutor
     {
+        internal ICache CurrentCache => _cacheProvider?.Invoke();
         private readonly Func<ICache> _cacheProvider;
 
         /// <summary>

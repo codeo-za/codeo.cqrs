@@ -33,7 +33,7 @@
 
   <ItemGroup>
     <PackageReference Include="Dapper" Version="1.60.6" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="System.Runtime.Caching" Version="4.7.0" />
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />
   </ItemGroup>
