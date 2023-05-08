@@ -1,33 +1,74 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Transactions;
+using Codeo.CQRS.Caching;
 using Codeo.CQRS.Exceptions;
 
 namespace Codeo.CQRS
 {
     /// <summary>
-    /// The base abstract class for all commands,
-    /// inheriting from the BaseSqlExecutor, so it's
-    /// ready for sql-based commands (though does not
-    /// require sql-based logic at all).
+    /// The base contract for a command
     /// </summary>
-    public abstract class Command : BaseSqlExecutor
+    public interface ICommand
     {
-        private readonly List<Action<TransactionEventArgs>> _transactionCompletedHandlers =
-            new List<Action<TransactionEventArgs>>();
-
         /// <summary>
         /// The query executor to use for sub-queries. If not set,
         /// this will be set by the default implementation when
         /// the CommandExecutor executes this command.
         /// </summary>
-        public IQueryExecutor QueryExecutor { get; set; }
+        IQueryExecutor QueryExecutor { get; set; }
 
         /// <summary>
         /// The command executor to use for sub-commands. If not set,
         /// this will be set by the default implementation when
         /// the CommandExecutor executes this command.
         /// </summary>
+        ICommandExecutor CommandExecutor { get; set; }
+
+        /// <summary>
+        /// The cache implementation to use for sub-queries
+        /// </summary>
+        ICache Cache { get; set; }
+        
+        /// <summary>
+        /// Executes the command's logic
+        /// </summary>
+        void Execute();
+        
+        /// <summary>
+        /// Validates the command's state before
+        /// execution
+        /// </summary>
+        void Validate();
+
+        /// <summary>
+        /// allows the caller to opt in to the current transaction's completion event
+        /// </summary>
+        void OnTransactionCompleted(Action<TransactionEventArgs> handler);
+    }
+
+    /// <summary>
+    /// The contract for a command which returns a result
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public interface ICommand<out T>: ICommand
+    {
+        /// <summary>
+        /// The result returned by the command
+        /// </summary>
+        T Result { get; }
+    }
+
+    /// <inheritdoc cref="Codeo.CQRS.ICommand" />
+    public abstract class Command : BaseSqlExecutor, ICommand
+    {
+        private readonly List<Action<TransactionEventArgs>> _transactionCompletedHandlers =
+            new List<Action<TransactionEventArgs>>();
+
+        /// <inheritdoc />
+        public IQueryExecutor QueryExecutor { get; set; }
+
+        /// <inheritdoc />
         public ICommandExecutor CommandExecutor { get; set; }
 
         /// <summary>
@@ -43,30 +84,58 @@ namespace Codeo.CQRS
                 }
 
                 _transactionCompletedHandlers.Add(handler);
-                Transaction.Current.TransactionCompleted += (sender, args) => OnCommandTransactionComplete(args);
+                Transaction.Current.TransactionCompleted += (_, args) => OnCommandTransactionComplete(args);
             }
         }
 
-        /// <summary>
-        /// The heart of the command logic.
-        /// </summary>
+        /// <inheritdoc />
         public abstract void Execute();
 
-        /// <summary>
-        /// Validates this instance.
-        /// </summary>
+        /// <inheritdoc />
         public abstract void Validate();
 
         /// <summary>
         /// Ensures that a transaction scope is available
         /// </summary>
         /// <exception cref="TransactionScopeRequired"></exception>
-        public void ValidateTransactionScope()
+        protected void ValidateTransactionScope()
         {
             if (Transaction.Current == null)
             {
                 throw new TransactionScopeRequired(this);
             }
+        }
+
+        /// <summary>
+        /// Executes the sub-command and returns the result
+        /// </summary>
+        /// <param name="command"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        protected T Execute<T>(ICommand<T> command)
+        {
+            return CommandExecutor.Execute(command);
+        }
+
+        /// <summary>
+        /// Executes the sub-command
+        /// </summary>
+        /// <param name="command"></param>
+        /// <returns></returns>
+        protected void Execute(ICommand command)
+        {
+            CommandExecutor.Execute(command);
+        }
+
+        /// <summary>
+        /// Executes the sub-query and returns the result
+        /// </summary>
+        /// <param name="query"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        protected T Execute<T>(IQuery<T> query)
+        {
+            return QueryExecutor.Execute(query);
         }
 
         /// <summary>
@@ -88,18 +157,10 @@ namespace Codeo.CQRS
         }
     }
 
-    /// <summary>
-    /// A typed command can return a single value of type T.
-    /// Typically, this might be used for something like an
-    /// insert where the id of the inserted item is returned.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    public abstract class Command<T> : Command
+    /// <inheritdoc cref="Codeo.CQRS.ICommand" />
+    public abstract class Command<T> : Command, ICommand<T>
     {
-        /// <summary>
-        /// The result of this command's execution,
-        /// when successful.
-        /// </summary>
-        public T Result { get; set; }
+        /// <inheritdoc />
+        public T Result { get; protected set; }
     }
 }

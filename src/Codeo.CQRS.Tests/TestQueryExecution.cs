@@ -666,7 +666,7 @@ namespace Codeo.CQRS.Tests
                         var name2 = GetAnother(name1, GetRandomName);
                         var cacheKey = sut.CacheKey;
                         // Act
-                        
+
                         var first = QueryExecutor.Execute(
                             new FindPersonByIdCaching(
                                 id,
@@ -1083,6 +1083,128 @@ namespace Codeo.CQRS.Tests
                     UseMemoryCache,
                     UseNoCache
                 );
+            }
+        }
+
+
+        [TestFixture]
+        public class ExecutingSubQueries : TestFixtureRequiringData
+        {
+            [Test]
+            public void ShouldHaveExecuteShorthand()
+            {
+                // Arrange
+                var name = GetRandomName();
+                var id = CreatePerson(name);
+                var sut = new Meta(id);
+                // Act
+                var result = QueryExecutor.Execute(sut);
+                // Assert
+                Expect(result.Id)
+                    .To.Equal(id);
+                Expect(result.Name)
+                    .To.Equal(name);
+            }
+
+            public class Meta : Query<Person>
+            {
+                public int PersonId { get; }
+
+                public Meta(int personId)
+                {
+                    PersonId = personId;
+                }
+
+                public override void Execute()
+                {
+                    Result = Execute(
+                        new FindPersonById(PersonId)
+                    );
+                }
+
+                public override void Validate()
+                {
+                }
+            }
+        }
+
+        [TestFixture]
+        public class ExecutingSubCommands : TestFixtureRequiringData
+        {
+            [Test]
+            public void ShouldBeAbleToEasilyExecuteSubCommand()
+            {
+                // Arrange
+                var name1 = GetRandomName();
+                var name2 = GetAnother(name1, GetRandomName);
+                var id = CreatePerson(name1);
+                var sut = new UpdatePersonName(id, name2);
+                // Act
+                CommandExecutor.Execute(sut);
+                // Assert
+                var stored = FindPersonById(id);
+                Expect(stored.Name)
+                    .To.Equal(name2);
+            }
+
+            public class UpdatePersonName : Command<int>
+            {
+                public int PersonId { get; }
+                public string NewName { get; }
+
+                public UpdatePersonName(
+                    int personId,
+                    string newName
+                )
+                {
+                    PersonId = personId;
+                    NewName = newName;
+                }
+
+                public override void Execute()
+                {
+                    var originalName = Execute(new FindPersonById(PersonId))
+                        .Name;
+                    if (originalName == NewName)
+                    {
+                        throw new InvalidOperationException(
+                            "New name must be new"
+                        );
+                    }
+
+                    Execute(new UpdatePersonNameActual(PersonId, NewName));
+                }
+
+                public override void Validate()
+                {
+                }
+            }
+
+            public class UpdatePersonNameActual : Command<int>
+            {
+                public int PersonId { get; }
+                public string NewName { get; }
+
+                public UpdatePersonNameActual(
+                    int personId,
+                    string newName
+                )
+                {
+                    PersonId = personId;
+                    NewName = newName;
+                }
+
+                public override void Execute()
+                {
+                    Result = ExecuteUpdate(
+                        "update people set name = @name where id = @id;",
+                        new { name = NewName, id = PersonId }
+                    );
+                }
+
+                public override void Validate()
+                {
+                }
             }
         }
 

@@ -13,7 +13,7 @@ namespace Codeo.CQRS
         /// Executes the specified query.
         /// </summary>
         /// <param name="query">The query.</param>
-        void Execute(Query query);
+        void Execute(IQuery query);
 
         /// <summary>
         /// Executes the specified query.
@@ -21,13 +21,13 @@ namespace Codeo.CQRS
         /// <typeparam name="T"></typeparam>
         /// <param name="query">The query.</param>
         /// <returns></returns>
-        T Execute<T>(Query<T> query);
+        T Execute<T>(IQuery<T> query);
 
         /// <summary>
         /// Executes the specified queries.
         /// </summary>
         /// <param name="queries">The queries.</param>
-        void Execute(IEnumerable<Query> queries);
+        void Execute(IEnumerable<IQuery> queries);
     }
 
     /// <inheritdoc />
@@ -61,7 +61,7 @@ namespace Codeo.CQRS
         /// Executes the specified query.
         /// </summary>
         /// <param name="query">The query.</param>
-        public void Execute(Query query)
+        public void Execute(IQuery query)
         {
             ExecuteWithNoResult(query);
         }
@@ -72,13 +72,13 @@ namespace Codeo.CQRS
         /// <typeparam name="T"></typeparam>
         /// <param name="query">The query.</param>
         /// <returns></returns>
-        public T Execute<T>(Query<T> query)
+        public T Execute<T>(IQuery<T> query)
         {
             ExecuteWithNoResult(query);
             return query.Result;
         }
 
-        private void ExecuteWithNoResult(Query query)
+        private void ExecuteWithNoResult(IQuery query)
         {
             if (query == null)
             {
@@ -95,7 +95,7 @@ namespace Codeo.CQRS
         /// Executes the specified queries.
         /// </summary>
         /// <param name="queries">The queries.</param>
-        public void Execute(IEnumerable<Query> queries)
+        public void Execute(IEnumerable<IQuery> queries)
         {
             if (queries == null)
             {

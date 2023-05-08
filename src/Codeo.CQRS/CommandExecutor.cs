@@ -14,7 +14,7 @@ namespace Codeo.CQRS
         /// Executes the specified command.
         /// </summary>
         /// <param name="command">The command.</param>
-        void Execute(Command command);
+        void Execute(ICommand command);
 
         /// <summary>
         /// Executes the specified command.
@@ -22,13 +22,13 @@ namespace Codeo.CQRS
         /// <typeparam name="T"></typeparam>
         /// <param name="command">The command.</param>
         /// <returns></returns>
-        T Execute<T>(Command<T> command);
+        T Execute<T>(ICommand<T> command);
 
         /// <summary>
         /// Executes the specified commands.
         /// </summary>
         /// <param name="commands">The commands.</param>
-        void Execute(IEnumerable<Command> commands);
+        void Execute(IEnumerable<ICommand> commands);
     }
 
     /// <inheritdoc />
@@ -67,11 +67,8 @@ namespace Codeo.CQRS
             _cacheFactory = cacheFactory;
         }
 
-        /// <summary>
-        /// Executes the specified command.
-        /// </summary>
-        /// <param name="command">The command.</param>
-        public void Execute(Command command)
+        /// <inheritdoc />
+        public void Execute(ICommand command)
         {
             if (command == null)
             {
@@ -85,23 +82,15 @@ namespace Codeo.CQRS
             command.Execute();
         }
 
-        /// <summary>
-        /// Executes the specified command.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="command">The command.</param>
-        /// <returns></returns>
-        public T Execute<T>(Command<T> command)
+        /// <inheritdoc />
+        public T Execute<T>(ICommand<T> command)
         {
-            Execute(command as Command);
+            Execute(command as ICommand);
             return command.Result;
         }
 
-        /// <summary>
-        /// Executes the specified commands.
-        /// </summary>
-        /// <param name="commands">The commands.</param>
-        public void Execute(IEnumerable<Command> commands)
+        /// <inheritdoc />
+        public void Execute(IEnumerable<ICommand> commands)
         {
             var commandsArray = commands as Command[] ?? commands.ToArray();
             if (commands == null)

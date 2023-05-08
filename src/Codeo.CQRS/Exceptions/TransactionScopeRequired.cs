@@ -21,7 +21,7 @@ namespace Codeo.CQRS.Exceptions
         }
 
         /// <inheritdoc />
-        public TransactionScopeRequired(Query query) :
+        public TransactionScopeRequired(IQuery query) :
             base($"Transaction scope is required when executing query '${query.GetType().Name}'")
         {
             Query = query;
@@ -30,10 +30,10 @@ namespace Codeo.CQRS.Exceptions
         /// <summary>
         /// The command that required the transaction, if supplied
         /// </summary>
-        public Command Command { get; set; }
+        public ICommand Command { get; private set; }
         /// <summary>
         /// The query that required the transaction, if supplied
         /// </summary>
-        public Query Query { get; set; }
+        public IQuery Query { get; private set; }
     }
 }
