@@ -18,7 +18,7 @@ namespace Codeo.CQRS
         /// <typeparam name="T"></typeparam>
         /// <param name="query">The query.</param>
         /// <returns></returns>
-        T Execute<T>(Query<T> query);
+        T? Execute<T>(Query<T?> query);
 
         /// <summary>
         /// Executes the specified queries.
@@ -50,7 +50,7 @@ namespace Codeo.CQRS
         /// <typeparam name="T"></typeparam>
         /// <param name="query">The query.</param>
         /// <returns></returns>
-        public T Execute<T>(Query<T> query)
+        public T? Execute<T>(Query<T?> query)
         {
             ExecuteWithNoResult(query);
             return query.Result;

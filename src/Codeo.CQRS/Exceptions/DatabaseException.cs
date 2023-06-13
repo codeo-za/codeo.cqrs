@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using Newtonsoft.Json;
 
 namespace Codeo.CQRS.Exceptions
@@ -8,11 +9,21 @@ namespace Codeo.CQRS.Exceptions
     /// <summary>
     /// Custom exception to handle Common DB exceptions
     /// </summary>
+    [Serializable]
     public class DatabaseException : Exception
     {
         public Operation Operation { get; set; }
         public string QueryDescriptor { get; set; }
         public object Predicate { get; set; }
+        
+        protected DatabaseException(SerializationInfo info, StreamingContext streamingContext) : base(info,
+            streamingContext)
+        {
+            // for serializable logging support.  
+            Predicate = new { };
+            QueryDescriptor = string.Empty;
+            Operation = Operation.Select;
+        }
 
         public DatabaseException(Operation operation, string queryDescriptor, object predicate, Exception ex)
             : base($@"Error executing query in {
@@ -31,9 +42,9 @@ namespace Codeo.CQRS.Exceptions
         }
 
         private static string SafeSerialize(
-            object predicate)
+            object? predicate)
         {
-            if (predicate == null)
+            if (predicate is null)
             {
                 return "[NULL]";
             }

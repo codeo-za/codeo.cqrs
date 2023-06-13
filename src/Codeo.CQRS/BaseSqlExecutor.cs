@@ -12,6 +12,11 @@ using Codeo.CQRS.Caching;
 
 namespace Codeo.CQRS
 {
+    public interface ISqlExecutor
+    {
+        IEnumerable<T> SelectMany<T>(string sql);
+    }
+    
     public enum CacheUsage
     {
         Full,
@@ -19,7 +24,7 @@ namespace Codeo.CQRS
         Bypass
     }
 
-    public abstract class BaseSqlExecutor
+    public abstract class BaseSqlExecutor : ISqlExecutor
     {
         /// <summary>
         /// Default column to split Multi&lt;&gt; query results on.
@@ -27,7 +32,37 @@ namespace Codeo.CQRS
         /// </summary>
         public const string DEFAULT_SPLIT_ON_COLUMN = "Id";
 
-        internal static IDbConnectionFactory ConnectionFactory { get; set; }
+        internal static IDbConnectionFactory? ConnectionFactory { get; set; }
+        internal static IServiceProvider? ServiceProvider { get; set; }
+        
+        protected static object GetService(Type type)
+        {
+            if (ServiceProvider is null)
+            {
+                throw new InvalidOperationException(
+                    "Please configure and provide a instance of the ServiceProvider to use GetService<T>()");
+            }
+            
+            return ServiceProvider.GetService(type);
+        }
+        
+        protected static T GetRequiredService<T>()
+        {
+            if (ServiceProvider is null)
+            {
+                throw new InvalidOperationException(
+                    "Please configure and provide a instance of the ServiceProvider to use GetService<T>()");
+            }
+            
+            var service = ServiceProvider.GetService(typeof(T));
+
+            if (service is null)
+            {
+                throw new NullReferenceException("The requested service can not be provisioned");
+            }
+
+            return (T)service;
+        }
 
         internal static void InstallExceptionHandler<T>(
             IExceptionHandler<T> handler) where T : Exception
@@ -70,21 +105,18 @@ namespace Codeo.CQRS
 
         internal static readonly Dictionary<Type,
                 List<Tuple<IExceptionHandler, Func<Operation, Exception, ExceptionHandlingStrategy>>>>
-            ExceptionHandlers
-                = new Dictionary<Type,
-                    List<Tuple<IExceptionHandler, Func<Operation, Exception, ExceptionHandlingStrategy>>>>();
+            ExceptionHandlers = new();
 
         internal static readonly ConcurrentDictionary<Type, Func<Operation, Exception, ExceptionHandlingStrategy>[]>
-            ExceptionHandlerCache =
-                new ConcurrentDictionary<Type, Func<Operation, Exception, ExceptionHandlingStrategy>[]>();
+            ExceptionHandlerCache = new();
 
-        public ICache Cache { get; set; }
+        public ICache? Cache { get; set; }
         public CacheUsage CacheUsage { get; set; } = CacheUsage.Full;
 
         protected void InvalidateCache()
         {
             var cacheKey = GenerateCacheKey();
-            Cache.Remove(cacheKey);
+            Cache?.Remove(cacheKey);
         }
 
         protected T Through<T>(Func<T> generator)
@@ -776,14 +808,14 @@ namespace Codeo.CQRS
                 EnsureDapperKnowsAbout<TThird>();
                 using var connection = CreateOpenConnection();
 
-                List<TReturn> Execute(IDbConnection conn)
+                List<TReturn> ExecuteQuery(IDbConnection conn)
                 {
                     return conn.Query(sql, function, parameters).ToList();
                 }
 
                 return SelectRowsOnConnection(
                     connection,
-                    Execute
+                    ExecuteQuery
                 );
             });
         }
@@ -819,6 +851,7 @@ namespace Codeo.CQRS
             }
 
             Func<Operation, Exception, ExceptionHandlingStrategy>[] result = null;
+            
             lock (ExceptionHandlers)
             {
                 if (ExceptionHandlers.TryGetValue(ex.GetType(), out var handlers))
@@ -994,8 +1027,7 @@ namespace Codeo.CQRS
         {
             return QueryFirst<T>(Operation.Delete, sql, parameters);
         }
-
-
+        
         public int ExecuteUpdate(string sql)
         {
             return ExecuteUpdate(sql, null);
@@ -1071,7 +1103,7 @@ namespace Codeo.CQRS
             }
         }
 
-        private T QueryFirst<T>(
+        private T? QueryFirst<T>(
             Operation operation,
             string sql,
             object parameters)
@@ -1108,7 +1140,7 @@ namespace Codeo.CQRS
                 });
         }
 
-        private bool LooksLikeNoRowsReturned(Exception ex)
+        private static bool LooksLikeNoRowsReturned(Exception ex)
         {
             return ex is InvalidOperationException &&
                 ex.StackTrace.Split('\n')
@@ -1116,9 +1148,9 @@ namespace Codeo.CQRS
         }
 
         private const string EnumerableFirst =
-            nameof(Enumerable) + "." + nameof(System.Linq.Enumerable.First);
+            nameof(Enumerable) + "." + nameof(Enumerable.First);
 
-        private T RunSingleResultQueryOnConnection<T>(
+        private T? RunSingleResultQueryOnConnection<T>(
             Operation operation,
             IDbConnection connection,
             Func<IDbConnection, T> queryExecutor)

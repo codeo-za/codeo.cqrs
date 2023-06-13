@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using Codeo.CQRS.Exceptions;
 using Dapper;
@@ -11,6 +12,13 @@ namespace Codeo.CQRS
         public static Configuration Configure()
         {
             return new Configuration();
+        }
+
+        public static Configuration Configure(Action<Configuration> builder)
+        {
+            var configuration = new Configuration();
+            builder(configuration);
+            return configuration;
         }
 
         public class Configuration
@@ -43,7 +51,7 @@ namespace Codeo.CQRS
             }
 
             public Configuration WithExceptionHandler<TException>(
-                IExceptionHandler<TException> handler)
+                IExceptionHandler<TException?> handler)
                 where TException : Exception
             {
                 BaseSqlExecutor.InstallExceptionHandler(handler);
@@ -69,6 +77,12 @@ namespace Codeo.CQRS
             public Configuration WithConnectionFactory(IDbConnectionFactory connectionFactory)
             {
                 BaseSqlExecutor.ConnectionFactory = connectionFactory;
+                return this;
+            }
+            
+            public Configuration WithServiceProvider(IServiceProvider serviceProvider)
+            {
+                BaseSqlExecutor.ServiceProvider = serviceProvider;
                 return this;
             }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Codeo.CQRS.Caching;
 
 namespace Codeo.CQRS
@@ -20,6 +21,20 @@ namespace Codeo.CQRS
         /// <param name="command">The command.</param>
         /// <returns></returns>
         T Execute<T>(Command<T> command);
+
+        /// <summary>
+        /// Executes the specified command (with async support)
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="command">The command.</param>
+        /// <returns></returns>
+        Task<T> ExecuteAsync<T>(CommandAsync<T> command);
+        
+        /// <summary>
+        /// Executes the specified command (with async support)
+        /// </summary>
+        /// <param name="command">The command.</param>
+        Task ExecuteAsync(CommandAsync command);
 
         /// <summary>
         /// Executes the specified commands.
@@ -58,6 +73,24 @@ namespace Codeo.CQRS
             command.Validate();
             command.Execute();
         }
+        
+        /// <summary>
+        /// Executes the specified command (with async support)
+        /// </summary>
+        /// <param name="command">The command.</param>
+        public async Task ExecuteAsync(CommandAsync command)
+        {
+            if (command == null)
+            {
+                throw new ArgumentNullException(nameof(command));
+            }
+
+            command.QueryExecutor ??= _queryExecutor;
+            command.CommandExecutor ??= this;
+            command.Cache ??= _cache;
+            command.Validate();
+            await command.ExecuteAsync();
+        }
 
         /// <summary>
         /// Executes the specified command.
@@ -68,6 +101,18 @@ namespace Codeo.CQRS
         public T Execute<T>(Command<T> command)
         {
             Execute(command as Command);
+            return command.Result;
+        }
+        
+        /// <summary>
+        /// Executes the specified command (with async support)
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="command">The command.</param>
+        /// <returns></returns>
+        public async Task<T> ExecuteAsync<T>(CommandAsync<T> command)
+        {
+            await ExecuteAsync(command as CommandAsync);
             return command.Result;
         }
 
