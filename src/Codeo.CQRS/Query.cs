@@ -57,4 +57,9 @@ namespace Codeo.CQRS
             }
         }
     }
+
+    public abstract class QueryAsync<T> : QueryAsync
+    {
+        public T? Result { get; set; }
+    } 
 }

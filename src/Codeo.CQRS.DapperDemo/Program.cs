@@ -6,6 +6,7 @@ using Codeo.CQRS;
 using Codeo.CQRS.Demo;
 using Codeo.CQRS.Demo.DAO.Models;
 using Codeo.CQRS.Demo.Infrastructure.Commands.Orders;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using static Codeo.CQRS.Demo.Container;
@@ -34,6 +35,5 @@ var id = await commandExecutor.ExecuteAsync(new InsertPerson(new Person
 }));
 
 Console.WriteLine(id);
-
 
     

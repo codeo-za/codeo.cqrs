@@ -12,11 +12,6 @@ using Codeo.CQRS.Caching;
 
 namespace Codeo.CQRS
 {
-    public interface ISqlExecutor
-    {
-        IEnumerable<T> SelectMany<T>(string sql);
-    }
-    
     public enum CacheUsage
     {
         Full,
@@ -24,7 +19,7 @@ namespace Codeo.CQRS
         Bypass
     }
 
-    public abstract class BaseSqlExecutor : ISqlExecutor
+    public abstract class BaseSqlExecutor
     {
         /// <summary>
         /// Default column to split Multi&lt;&gt; query results on.
@@ -34,38 +29,11 @@ namespace Codeo.CQRS
 
         internal static IDbConnectionFactory? ConnectionFactory { get; set; }
         internal static IServiceProvider? ServiceProvider { get; set; }
-        
-        protected static object GetService(Type type)
-        {
-            if (ServiceProvider is null)
-            {
-                throw new InvalidOperationException(
-                    "Please configure and provide a instance of the ServiceProvider to use GetService<T>()");
-            }
-            
-            return ServiceProvider.GetService(type);
-        }
-        
-        protected static T GetRequiredService<T>()
-        {
-            if (ServiceProvider is null)
-            {
-                throw new InvalidOperationException(
-                    "Please configure and provide a instance of the ServiceProvider to use GetService<T>()");
-            }
-            
-            var service = ServiceProvider.GetService(typeof(T));
+        public ICache? Cache { get; set; }
+        protected IDbConnection DbConnection => ConnectionFactory?.Create() 
+                                                ?? throw new Exception("The connection factory has not been configured correctly");
 
-            if (service is null)
-            {
-                throw new NullReferenceException("The requested service can not be provisioned");
-            }
-
-            return (T)service;
-        }
-
-        internal static void InstallExceptionHandler<T>(
-            IExceptionHandler<T> handler) where T : Exception
+        internal static void InstallExceptionHandler<T>(IExceptionHandler<T> handler) where T : Exception
         {
             var exType = typeof(T);
             lock (ExceptionHandlers)
@@ -86,8 +54,7 @@ namespace Codeo.CQRS
             }
         }
 
-        internal static void UninstallExceptionHandler<T>(
-            IExceptionHandler<T> handler) where T : Exception
+        internal static void UninstallExceptionHandler<T>(IExceptionHandler<T> handler) where T : Exception
         {
             var exType = typeof(T);
             lock (ExceptionHandlers)
@@ -103,14 +70,12 @@ namespace Codeo.CQRS
             }
         }
 
-        internal static readonly Dictionary<Type,
-                List<Tuple<IExceptionHandler, Func<Operation, Exception, ExceptionHandlingStrategy>>>>
+        internal static readonly Dictionary<Type, List<Tuple<IExceptionHandler, Func<Operation, Exception, ExceptionHandlingStrategy>>>>
             ExceptionHandlers = new();
 
         internal static readonly ConcurrentDictionary<Type, Func<Operation, Exception, ExceptionHandlingStrategy>[]>
             ExceptionHandlerCache = new();
-
-        public ICache? Cache { get; set; }
+        
         public CacheUsage CacheUsage { get; set; } = CacheUsage.Full;
 
         protected void InvalidateCache()
@@ -140,7 +105,7 @@ namespace Codeo.CQRS
                         // inheriting class may override GenerateCacheOptions
                         // to specifically return no-cache
                         return generator();
-                    }
+                    }   
 
                     return cacheOptions.AbsoluteExpiration.HasValue
                         ? Cache.GetOrSet(cacheKey, generator, cacheOptions.AbsoluteExpiration.Value)
@@ -227,17 +192,16 @@ namespace Codeo.CQRS
                 : new CacheExpiration(TimeSpan.FromSeconds(MyCacheAttribute.TTL));
         }
 
-        private CacheAttribute MyCacheAttribute =>
+        private CacheAttribute? MyCacheAttribute =>
             _myCacheAttribute ??= FindMyCacheAttribute();
 
-        private CacheAttribute _myCacheAttribute;
+        private CacheAttribute? _myCacheAttribute;
 
-        private Type MyType =>
-            _myType ??= GetType();
+        private Type MyType => _myType ??= GetType();
 
-        private Type _myType;
+        private Type? _myType;
 
-        private CacheAttribute FindMyCacheAttribute()
+        private CacheAttribute? FindMyCacheAttribute()
         {
             return MyType
                 .GetCustomAttributes(true)
@@ -279,7 +243,7 @@ namespace Codeo.CQRS
 
         private string GenerateEnumerableKeyPartFor(
             Type propertyType,
-            object collection)
+            object? collection)
         {
             if (collection is null)
             {
@@ -288,7 +252,7 @@ namespace Codeo.CQRS
 
             var itemType = propertyType.GetCollectionItemType();
             var method = CollectionToListGenericMethod.MakeGenericMethod(itemType);
-            return method.Invoke(null, new object[] { collection, "," }) as string;
+            return method.Invoke(null, new object[] { collection, "," }) as string ?? "(null)";
         }
 
         private static string CollectionToList<T>(
@@ -298,23 +262,24 @@ namespace Codeo.CQRS
             return string.Join(delimiter, collection);
         }
 
-        private static readonly MethodInfo CollectionToListGenericMethod
-            = typeof(BaseSqlExecutor)
-                .GetMethod(nameof(CollectionToList), BindingFlags.Static | BindingFlags.NonPublic);
+        private static readonly MethodInfo? CollectionToListGenericMethod = 
+            typeof(BaseSqlExecutor).GetMethod(nameof(CollectionToList), BindingFlags.Static | BindingFlags.NonPublic);
 
         private PropertyInfo[] CacheProps =>
             _cacheProps ??= FindCacheProps();
 
-        private PropertyInfo[] _cacheProps;
+        private PropertyInfo[]? _cacheProps;
 
         private PropertyInfo[] FindCacheProps()
         {
             var result = MyType.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                 .Where(pi => MyCacheAttribute.CacheKeyProperties.Contains(pi.Name))
                 .ToArray();
+            
             var missing = MyCacheAttribute.CacheKeyProperties
                 .Except(result.Select(pi => pi.Name))
                 .ToArray();
+            
             if (missing.Any())
             {
                 throw new InvalidCachePropertiesSpecified(missing);
@@ -335,7 +300,7 @@ namespace Codeo.CQRS
         /// <summary>
         /// Selects zero or more items from the database
         /// </summary>
-        /// <param name="sql"></param>
+        /// <param name="sq l"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
         public IEnumerable<T> SelectMany<T>(string sql)
@@ -390,6 +355,7 @@ namespace Codeo.CQRS
             string sql,
             object parameters)
         {
+            // return ExecutionProvider.SelectFirst<T>(sql, parameters);
             return Through(
                 () => QueryFirst<T>(
                     Operation.Select,

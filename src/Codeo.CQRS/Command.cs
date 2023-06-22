@@ -11,8 +11,8 @@ namespace Codeo.CQRS
         private List<Action<TransactionEventArgs>> _transactionCompletedHandlers =
             new List<Action<TransactionEventArgs>>();
 
-        public IQueryExecutor QueryExecutor { get; set; }
-        public ICommandExecutor CommandExecutor { get; set; }
+        public IQueryExecutor? QueryExecutor { get; set; }
+        public ICommandExecutor? CommandExecutor { get; set; }
 
         /// <summary>
         /// allows the caller to opt in to the current transaction's completion event

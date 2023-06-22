@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Codeo.CQRS.Caching;
 
 namespace Codeo.CQRS
@@ -47,6 +48,15 @@ namespace Codeo.CQRS
         /// <summary>
         /// Executes the specified query.
         /// </summary>
+        /// <param name="query">The query.</param>
+        public async Task ExecuteAsync(QueryAsync query)
+        {
+            await ExecuteWithNoResultAsync(query);
+        }
+
+        /// <summary>
+        /// Executes the specified query.
+        /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="query">The query.</param>
         /// <returns></returns>
@@ -54,6 +64,18 @@ namespace Codeo.CQRS
         {
             ExecuteWithNoResult(query);
             return query.Result;
+        }
+
+        /// <summary>
+        /// Executes the specified query.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="queryAsync">The query.</param>
+        /// <returns></returns>
+        public async Task<T?> Execute<T>(QueryAsync<T?> queryAsync)
+        {
+            await ExecuteWithNoResultAsync(queryAsync);
+            return queryAsync.Result;
         }
 
         private void ExecuteWithNoResult(Query query)
@@ -64,9 +86,22 @@ namespace Codeo.CQRS
             }
 
             query.QueryExecutor = this;
-            query.Cache = query.Cache ?? _cache;
+            query.Cache ??= _cache;
             query.Validate();
             query.Execute();
+        }
+
+        private async Task ExecuteWithNoResultAsync(QueryAsync query)
+        {
+            if (query == null)
+            {
+                throw new ArgumentNullException(nameof(query));
+            }
+
+            query.QueryExecutor = this;
+            query.Cache ??= _cache;
+            query.Validate();
+            await query.ExecuteAsync();
         }
 
         /// <summary>
