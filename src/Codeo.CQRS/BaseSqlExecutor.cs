@@ -29,9 +29,27 @@ namespace Codeo.CQRS
 
         internal static IDbConnectionFactory? ConnectionFactory { get; set; }
         internal static IServiceProvider? ServiceProvider { get; set; }
+
+        protected T GetRequiredService<T>()
+        {
+            if (ServiceProvider is null)
+            {
+                throw new InvalidOperationException("The service provider has not been configured correctly");
+            }
+            
+            var service = ServiceProvider.GetService(typeof(T));
+
+            if (service is null)
+            {
+                throw new NullReferenceException($"Failed to resolve service for {typeof(T).Name}");
+            }
+
+            return (T)service;
+        }
+        
         public ICache? Cache { get; set; }
         protected IDbConnection DbConnection => ConnectionFactory?.Create() 
-                                                ?? throw new Exception("The connection factory has not been configured correctly");
+                                                ?? throw new InvalidOperationException("The connection factory has not been configured correctly");
 
         internal static void InstallExceptionHandler<T>(IExceptionHandler<T> handler) where T : Exception
         {
@@ -108,10 +126,10 @@ namespace Codeo.CQRS
                     }   
 
                     return cacheOptions.AbsoluteExpiration.HasValue
-                        ? Cache.GetOrSet(cacheKey, generator, cacheOptions.AbsoluteExpiration.Value)
+                        ? Cache!.GetOrSet(cacheKey, generator, cacheOptions.AbsoluteExpiration.Value)
                         // the Enabled property double-checks this
                         // ReSharper disable once PossibleInvalidOperationException
-                        : Cache.GetOrSet(cacheKey, generator, cacheOptions.SlidingExpiration.Value);
+                        : Cache!.GetOrSet(cacheKey, generator, cacheOptions.SlidingExpiration!.Value);
             }
         }
 
@@ -127,7 +145,7 @@ namespace Codeo.CQRS
             var cacheKey = GenerateCacheKey();
             if (cacheItemExpiration.AbsoluteExpiration.HasValue)
             {
-                Cache.Set(
+                Cache!.Set(
                     cacheKey,
                     result,
                     cacheItemExpiration.AbsoluteExpiration.Value
@@ -135,14 +153,14 @@ namespace Codeo.CQRS
             }
             else if (cacheItemExpiration.SlidingExpiration.HasValue)
             {
-                Cache.Set(
+                Cache!.Set(
                     cacheKey,
                     cacheItemExpiration.SlidingExpiration.Value
                 );
             }
             else
             {
-                Cache.Set(
+                Cache!.Set(
                     cacheKey,
                     result
                 );
@@ -251,7 +269,7 @@ namespace Codeo.CQRS
             }
 
             var itemType = propertyType.GetCollectionItemType();
-            var method = CollectionToListGenericMethod.MakeGenericMethod(itemType);
+            var method = CollectionToListGenericMethod!.MakeGenericMethod(itemType);
             return method.Invoke(null, new object[] { collection, "," }) as string ?? "(null)";
         }
 
@@ -273,10 +291,10 @@ namespace Codeo.CQRS
         private PropertyInfo[] FindCacheProps()
         {
             var result = MyType.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                .Where(pi => MyCacheAttribute.CacheKeyProperties.Contains(pi.Name))
+                .Where(pi => MyCacheAttribute!.CacheKeyProperties.Contains(pi.Name))
                 .ToArray();
             
-            var missing = MyCacheAttribute.CacheKeyProperties
+            var missing = MyCacheAttribute!.CacheKeyProperties
                 .Except(result.Select(pi => pi.Name))
                 .ToArray();
             
@@ -290,17 +308,15 @@ namespace Codeo.CQRS
 
         private void SetCache<T>(T result)
         {
-            Cache.Set(GenerateCacheKey(), result);
+            Cache!.Set(GenerateCacheKey(), result);
         }
 
-        internal static readonly ConcurrentDictionary<Type, bool> KnownMappedTypes
-            = new ConcurrentDictionary<Type, bool>();
-
+        internal static readonly ConcurrentDictionary<Type, bool> KnownMappedTypes = new();
 
         /// <summary>
         /// Selects zero or more items from the database
         /// </summary>
-        /// <param name="sq l"></param>
+        /// <param name="sql"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
         public IEnumerable<T> SelectMany<T>(string sql)
@@ -317,7 +333,7 @@ namespace Codeo.CQRS
         /// <returns></returns>
         public IEnumerable<T> SelectMany<T>(
             string sql,
-            object parameters)
+            object? parameters)
         {
             return Through(
                 () => QueryCollection<T>(Operation.Select, sql, parameters)
@@ -1035,7 +1051,7 @@ namespace Codeo.CQRS
         private IEnumerable<T> QueryCollection<T>(
             Operation operation,
             string sql,
-            object parameters)
+            object? parameters)
         {
             EnsureDapperKnowsAbout<T>();
             using var connection = CreateOpenConnection();
@@ -1051,7 +1067,7 @@ namespace Codeo.CQRS
             Operation operation,
             IDbConnection connection,
             string sql,
-            object parameters
+            object? parameters
         )
         {
             try

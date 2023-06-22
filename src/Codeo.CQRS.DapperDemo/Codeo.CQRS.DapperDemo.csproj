@@ -26,7 +26,6 @@
 
     <ItemGroup>
       <Folder Include="DAO" />
-      <Folder Include="Infrastructure\Queries\Orders" />
     </ItemGroup>
 
     <ItemGroup>

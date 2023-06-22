@@ -8,8 +8,7 @@ namespace Codeo.CQRS
 {
     public abstract class Command : BaseSqlExecutor
     {
-        private List<Action<TransactionEventArgs>> _transactionCompletedHandlers =
-            new List<Action<TransactionEventArgs>>();
+        private List<Action<TransactionEventArgs>> _transactionCompletedHandlers = new();
 
         public IQueryExecutor? QueryExecutor { get; set; }
         public ICommandExecutor? CommandExecutor { get; set; }

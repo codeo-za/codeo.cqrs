@@ -14,12 +14,27 @@ namespace Codeo.CQRS
         void Execute(Query query);
 
         /// <summary>
+        /// Executes the specified query asynchronously.
+        /// </summary>
+        /// <param name="query">The query.</param>
+        Task ExecuteAsync(QueryAsync query);
+
+        /// <summary>
         /// Executes the specified query.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="query">The query.</param>
         /// <returns></returns>
-        T? Execute<T>(Query<T?> query);
+        T? Execute<T>(Query<T> query);
+
+
+        /// <summary>
+        /// Executes the specified query asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="queryAsync">The query.</param>
+        /// <returns></returns>
+        Task<T?> ExecuteAsync<T>(QueryAsync<T> queryAsync);
 
         /// <summary>
         /// Executes the specified queries.
@@ -60,7 +75,7 @@ namespace Codeo.CQRS
         /// <typeparam name="T"></typeparam>
         /// <param name="query">The query.</param>
         /// <returns></returns>
-        public T? Execute<T>(Query<T?> query)
+        public T? Execute<T>(Query<T> query)
         {
             ExecuteWithNoResult(query);
             return query.Result;
@@ -72,7 +87,7 @@ namespace Codeo.CQRS
         /// <typeparam name="T"></typeparam>
         /// <param name="queryAsync">The query.</param>
         /// <returns></returns>
-        public async Task<T?> Execute<T>(QueryAsync<T?> queryAsync)
+        public async Task<T?> ExecuteAsync<T>(QueryAsync<T> queryAsync)
         {
             await ExecuteWithNoResultAsync(queryAsync);
             return queryAsync.Result;

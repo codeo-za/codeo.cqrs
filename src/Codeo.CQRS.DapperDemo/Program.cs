@@ -2,11 +2,12 @@
 
 
 using System.Data;
+using System.Text.Json;
 using Codeo.CQRS;
 using Codeo.CQRS.Demo;
 using Codeo.CQRS.Demo.DAO.Models;
 using Codeo.CQRS.Demo.Infrastructure.Commands.Orders;
-using Microsoft.Extensions.Caching.Memory;
+using Codeo.CQRS.Demo.Infrastructure.Queries.Orders;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using static Codeo.CQRS.Demo.Container;
@@ -27,12 +28,18 @@ Fluently
     });
 
 var commandExecutor = serviceProvider.GetRequiredService<ICommandExecutor>();
+var queryExecutor = serviceProvider.GetRequiredService<IQueryExecutor>();
+
 var id = await commandExecutor.ExecuteAsync(new InsertPerson(new Person
 {
     FirstName = "John",
     LastName = "Doe",
     Age = 21
 }));
+
+var result = await queryExecutor.ExecuteAsync(new FetchAllPeople());
+
+Console.WriteLine(JsonSerializer.Serialize(result));
 
 Console.WriteLine(id);
 
