@@ -1,6 +1,16 @@
-﻿namespace Codeo.CQRS.Demo.Infrastructure.Queries.Orders;
+﻿using Codeo.CQRS.Demo.DAO.Models;
 
-public class FetchAllOrders
+namespace Codeo.CQRS.Demo.Infrastructure.Queries.Orders;
+
+public class FetchAllOrders : QueryAsync<List<Order>>
 {
-    
+    public override Task ExecuteAsync()
+    {
+        throw new NotImplementedException();
+    }
+
+    public override void Validate()
+    {
+        throw new NotImplementedException();
+    }
 }

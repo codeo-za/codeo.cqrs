@@ -7,6 +7,7 @@ using Codeo.CQRS;
 using Codeo.CQRS.Demo;
 using Codeo.CQRS.Demo.DAO.Models;
 using Codeo.CQRS.Demo.Infrastructure.Commands.Orders;
+using Codeo.CQRS.Demo.Infrastructure.Queries.Mocks;
 using Codeo.CQRS.Demo.Infrastructure.Queries.Orders;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,17 +31,30 @@ Fluently
 var commandExecutor = serviceProvider.GetRequiredService<ICommandExecutor>();
 var queryExecutor = serviceProvider.GetRequiredService<IQueryExecutor>();
 
-var id = await commandExecutor.ExecuteAsync(new InsertPerson(new Person
+// var id = await commandExecutor.ExecuteAsync(new InsertPerson(new Person
+// {
+//     FirstName = "John",
+//     LastName = "Doe",
+//     Age = 21
+// }));
+//
+// var result = await queryExecutor.ExecuteAsync(new FetchAllPeople());
+
+// Console.WriteLine(JsonSerializer.Serialize(result, new JsonSerializerOptions
+// {
+//     WriteIndented = true
+// }));
+
+var slowResult = await queryExecutor.ExecuteAsync(new SlowQuery());
+
+if (slowResult == 0)
 {
-    FirstName = "John",
-    LastName = "Doe",
-    Age = 21
-}));
+    Console.WriteLine("The query has failed");
+}
 
-var result = await queryExecutor.ExecuteAsync(new FetchAllPeople());
-
-Console.WriteLine(JsonSerializer.Serialize(result));
-
-Console.WriteLine(id);
+if (slowResult == 1)
+{
+    Console.WriteLine("The slow query has succeeded");
+}
 
     

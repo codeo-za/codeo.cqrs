@@ -41,15 +41,17 @@ namespace Codeo.CQRS
 
             if (service is null)
             {
-                throw new NullReferenceException($"Failed to resolve service for {typeof(T).Name}");
+                throw new NullReferenceException($"Failed to resolve service for {typeof(T).Name}. Check that the service has been registered within your service provider container.");
             }
 
             return (T)service;
         }
         
         public ICache? Cache { get; set; }
+        
         protected IDbConnection DbConnection => ConnectionFactory?.Create() 
-                                                ?? throw new InvalidOperationException("The connection factory has not been configured correctly");
+                                                ?? throw new InvalidOperationException(
+                                                    "Please configure a ConnectionFactory to provide new instances of IDbConnection per call to Create()");
 
         internal static void InstallExceptionHandler<T>(IExceptionHandler<T> handler) where T : Exception
         {
@@ -1250,7 +1252,7 @@ namespace Codeo.CQRS
             var result = ConnectionFactory?.Create()
                 ?? throw new InvalidOperationException(
                     "Please configure a ConnectionFactory to provide new instances of IDbConnection per call to Create()");
-            ;
+            
             if (result.State != ConnectionState.Open)
             {
                 result.Open();
