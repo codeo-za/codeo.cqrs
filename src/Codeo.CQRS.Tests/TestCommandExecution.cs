@@ -14,19 +14,23 @@ namespace Codeo.CQRS.Tests
     public class TestCommandExecution : TestFixtureRequiringData
     {
         [TestFixture]
-        public class TransactionCompletedHandler : TestCommandExecution
+        public class TransactionCompletedHandler : TestFixtureRequiringData
         {
             [Test]
             public void WhenNoTransactionExists_AndTransactionEventHandlerUsed_ShouldThrow()
             {
                 // arrange
-                var sut = Create();
+                var sut = CreateTestCommand();
 
                 // act
                 // assert
-                Expect(() => sut.OnTransactionCompleted((e) =>
-                    {
-                    }))
+                Expect(
+                        () => sut.OnTransactionCompleted(
+                            (e) =>
+                            {
+                            }
+                        )
+                    )
                     .To.Throw("No ambient transaction scope exists");
             }
 
@@ -34,14 +38,15 @@ namespace Codeo.CQRS.Tests
             public void WhenTransactionExists_AndTransactionHandlerUsed_AndTransactionRollback_ShouldInvokeHandler()
             {
                 // arrange
-                var sut = Create();
+                var sut = CreateTestCommand();
                 TransactionStatus? transactionStatus = null;
 
                 // act
                 using (TransactionScopes.ReadCommitted())
                 {
                     sut.OnTransactionCompleted(
-                        e => transactionStatus = e.Transaction.TransactionInformation.Status);
+                        e => transactionStatus = e.Transaction!.TransactionInformation.Status
+                    );
                 }
 
                 // assert
@@ -52,14 +57,15 @@ namespace Codeo.CQRS.Tests
             public void WhenTransactionExists_AndTransactionHandlerUsed_AndTransactionCommitted_ShouldInvokeHandler()
             {
                 // arrange
-                var sut = Create();
+                var sut = CreateTestCommand();
                 TransactionStatus? transactionStatus = null;
 
                 // act
                 using (var scope = TransactionScopes.ReadCommitted())
                 {
                     sut.OnTransactionCompleted(
-                        e => transactionStatus = e.Transaction.TransactionInformation.Status);
+                        e => transactionStatus = e.Transaction!.TransactionInformation.Status
+                    );
 
                     scope.Complete();
                 }
@@ -70,19 +76,20 @@ namespace Codeo.CQRS.Tests
         }
 
         [TestFixture]
-        public class AdvancedExecution : TestCommandExecution
+        public class AdvancedExecution : TestFixtureRequiringData
         {
             // required for code like Voucher's Distributed Lock
             [Test]
             public void ShouldBeAbleToSpecifyCommandTimeout()
             {
                 // Arrange
+                var sut = Create();
                 var cmd = new ShouldTimeout();
                 var threwSocketException = false;
                 // Act
                 try
                 {
-                    CommandExecutor.Execute(cmd);
+                    sut.Execute(cmd);
                 }
                 catch (MySqlException ex)
                 {
@@ -107,8 +114,9 @@ namespace Codeo.CQRS.Tests
                 // Arrange
                 var handler = new CustomHandler();
                 var cmd = new ShouldTimeout(handler);
+                var sut = Create();
                 // Act
-                Expect(() => CommandExecutor.Execute(cmd))
+                Expect(() => sut.Execute(cmd))
                     .Not.To.Throw();
                 // Assert
                 Expect(handler.CaughtException)
@@ -117,14 +125,6 @@ namespace Codeo.CQRS.Tests
                     .To.Equal(Operation.Insert);
             }
 
-            private static readonly ICache NoCache = new NoCache();
-
-            private static readonly ICommandExecutor CommandExecutor
-                = new CommandExecutor(
-                    new QueryExecutor(
-                        NoCache
-                    ), NoCache);
-
             public class CustomHandler : IExceptionHandler<MySqlException>
             {
                 public MySqlException CaughtException { get; set; }
@@ -132,11 +132,45 @@ namespace Codeo.CQRS.Tests
 
                 public ExceptionHandlingStrategy Handle(
                     Operation operation,
-                    MySqlException exception)
+                    MySqlException exception
+                )
                 {
                     HandledOperation = operation;
                     CaughtException = exception;
                     return ExceptionHandlingStrategy.Suppress;
+                }
+            }
+        }
+
+        [TestFixture]
+        public class DerivedCommandsWhereBaseReturnsValue : TestFixtureRequiringData
+        {
+            [Test]
+            public void ShouldExecuteToReturnValue()
+            {
+                // Arrange
+                var cmd = new DerivedCommand();
+                var sut = Create();
+                // Act
+                var result = sut.Execute(cmd);
+                // Assert
+                Expect(result)
+                    .To.Equal(1);
+            }
+
+            public class DerivedCommand : BaseCommand
+            {
+            }
+
+            public class BaseCommand : Command<int>
+            {
+                public override void Execute()
+                {
+                    Result = 1;
+                }
+
+                public override void Validate()
+                {
                 }
             }
         }
@@ -164,8 +198,19 @@ namespace Codeo.CQRS.Tests
             }
         }
 
+        private static CommandExecutor Create(
+            IQueryExecutor queryExecutor = null,
+            ICache cache = null
+        )
+        {
+            cache ??= new NoCache();
+            return new CommandExecutor(
+                queryExecutor ?? new QueryExecutor(cache),
+                cache
+            );
+        }
 
-        protected Command Create()
+        protected static Command CreateTestCommand()
         {
             return new TestCommand();
         }
