@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Transactions;
-using Codeo.CQRS.Caching;
 using Codeo.CQRS.Exceptions;
 
 namespace Codeo.CQRS
@@ -9,37 +8,14 @@ namespace Codeo.CQRS
     /// <summary>
     /// The base contract for a command
     /// </summary>
-    public interface ICommand
+    public interface ICommand: IExecutor
     {
-        /// <summary>
-        /// The query executor to use for sub-queries. If not set,
-        /// this will be set by the default implementation when
-        /// the CommandExecutor executes this command.
-        /// </summary>
-        IQueryExecutor QueryExecutor { get; set; }
-
         /// <summary>
         /// The command executor to use for sub-commands. If not set,
         /// this will be set by the default implementation when
         /// the CommandExecutor executes this command.
         /// </summary>
         ICommandExecutor CommandExecutor { get; set; }
-
-        /// <summary>
-        /// The cache implementation to use for sub-queries
-        /// </summary>
-        ICache Cache { get; set; }
-        
-        /// <summary>
-        /// Executes the command's logic
-        /// </summary>
-        void Execute();
-        
-        /// <summary>
-        /// Validates the command's state before
-        /// execution
-        /// </summary>
-        void Validate();
 
         /// <summary>
         /// allows the caller to opt in to the current transaction's completion event
@@ -100,10 +76,7 @@ namespace Codeo.CQRS
         /// <exception cref="TransactionScopeRequired"></exception>
         protected void ValidateTransactionScope()
         {
-            if (Transaction.Current == null)
-            {
-                throw new TransactionScopeRequired(this);
-            }
+            TransactionScopes.ValidateAmbientTransactionExistsFor(this);
         }
 
         /// <summary>

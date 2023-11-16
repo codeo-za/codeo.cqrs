@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Transactions;
+using Codeo.CQRS.Exceptions;
 
 namespace Codeo.CQRS
 {
@@ -29,7 +30,8 @@ namespace Codeo.CQRS
                 new TransactionOptions()
                 {
                     Timeout = TimeSpan.FromSeconds(timeout)
-                });
+                }
+            );
         }
 
         /// <summary>
@@ -40,7 +42,8 @@ namespace Codeo.CQRS
         /// <returns></returns>
         public static ITransactionScope ReadUncommitted(
             TransactionScopeOption option = TransactionScopeOption.Required,
-            int timeout = DEFAULT_TIMEOUT_SECONDS)
+            int timeout = DEFAULT_TIMEOUT_SECONDS
+        )
         {
             return Create(
                 option,
@@ -48,7 +51,8 @@ namespace Codeo.CQRS
                 {
                     IsolationLevel = IsolationLevel.ReadUncommitted,
                     Timeout = TimeSpan.FromSeconds(timeout)
-                });
+                }
+            );
         }
 
         /// <summary>
@@ -59,7 +63,8 @@ namespace Codeo.CQRS
         /// <returns></returns>
         public static ITransactionScope ReadCommitted(
             TransactionScopeOption option = TransactionScopeOption.Required,
-            int timeout = DEFAULT_TIMEOUT_SECONDS)
+            int timeout = DEFAULT_TIMEOUT_SECONDS
+        )
         {
             return Create(
                 option,
@@ -67,7 +72,8 @@ namespace Codeo.CQRS
                 {
                     IsolationLevel = IsolationLevel.ReadCommitted,
                     Timeout = TimeSpan.FromSeconds(timeout)
-                });
+                }
+            );
         }
 
         /// <summary>
@@ -78,7 +84,8 @@ namespace Codeo.CQRS
         /// <returns></returns>
         public static ITransactionScope RepeatableRead(
             TransactionScopeOption option = TransactionScopeOption.Required,
-            int timeout = DEFAULT_TIMEOUT_SECONDS)
+            int timeout = DEFAULT_TIMEOUT_SECONDS
+        )
         {
             return Create(
                 option,
@@ -86,7 +93,8 @@ namespace Codeo.CQRS
                 {
                     IsolationLevel = IsolationLevel.RepeatableRead,
                     Timeout = TimeSpan.FromSeconds(timeout)
-                });
+                }
+            );
         }
 
         /// <summary>
@@ -97,7 +105,8 @@ namespace Codeo.CQRS
         /// <returns></returns>
         public static ITransactionScope Serializable(
             TransactionScopeOption option = TransactionScopeOption.Required,
-            int timeout = DEFAULT_TIMEOUT_SECONDS)
+            int timeout = DEFAULT_TIMEOUT_SECONDS
+        )
         {
             return Create(
                 option,
@@ -105,7 +114,8 @@ namespace Codeo.CQRS
                 {
                     IsolationLevel = IsolationLevel.Serializable,
                     Timeout = TimeSpan.FromSeconds(timeout)
-                });
+                }
+            );
         }
 
         /// <summary>
@@ -116,7 +126,8 @@ namespace Codeo.CQRS
         /// <returns></returns>
         public static ITransactionScope Snapshot(
             TransactionScopeOption option = TransactionScopeOption.Required,
-            int timeout = DEFAULT_TIMEOUT_SECONDS)
+            int timeout = DEFAULT_TIMEOUT_SECONDS
+        )
         {
             return Create(
                 option,
@@ -124,7 +135,8 @@ namespace Codeo.CQRS
                 {
                     IsolationLevel = IsolationLevel.Snapshot,
                     Timeout = TimeSpan.FromSeconds(timeout)
-                });
+                }
+            );
         }
 
         /// <summary>
@@ -135,16 +147,19 @@ namespace Codeo.CQRS
         /// <returns></returns>
         public static ITransactionScope JoinOrDefault(
             IsolationLevel defaultLevelIfNoAmbient,
-            int timeout = DEFAULT_TIMEOUT_SECONDS)
+            int timeout = DEFAULT_TIMEOUT_SECONDS
+        )
         {
-            return Create(TransactionScopeOption.Required,
+            return Create(
+                TransactionScopeOption.Required,
                 new TransactionOptions()
                 {
                     IsolationLevel = Transaction.Current == null
                         ? defaultLevelIfNoAmbient
                         : Transaction.Current.IsolationLevel,
                     Timeout = TimeSpan.FromSeconds(timeout)
-                });
+                }
+            );
         }
 
         /// <summary>
@@ -155,7 +170,8 @@ namespace Codeo.CQRS
         /// <returns></returns>
         public static ITransactionScope Create(
             TransactionScopeOption scopeOption,
-            TransactionOptions transactionOptions)
+            TransactionOptions transactionOptions
+        )
         {
             return new TransactionScope(
                 scopeOption,
@@ -173,7 +189,8 @@ namespace Codeo.CQRS
         /// <param name="handler"></param>
         /// <returns></returns>
         public static Guid InstallDisposalExceptionHandler(
-            Func<Exception, DisposalExceptionHandlerResults> handler)
+            Func<Exception, DisposalExceptionHandlerResults> handler
+        )
         {
             var id = Guid.NewGuid();
             ScopeDisposalExceptionHandlers.TryAdd(id, handler);
@@ -185,9 +202,42 @@ namespace Codeo.CQRS
         /// </summary>
         /// <param name="id"></param>
         public static void UninstallDisposalExceptionHandler(
-            Guid id)
+            Guid id
+        )
         {
             ScopeDisposalExceptionHandlers.TryRemove(id, out var _);
+        }
+
+        /// <summary>
+        /// Validates that an ambient transaction exists for
+        /// the provided command
+        /// </summary>
+        /// <param name="command"></param>
+        /// <exception cref="TransactionScopeRequired"></exception>
+        public static void ValidateAmbientTransactionExistsFor(
+            IExecutor command
+        )
+        {
+            if (Transaction.Current == null)
+            {
+                throw new TransactionScopeRequired(command);
+            }
+        }
+
+        /// <summary>
+        /// Validates that an ambient transaction exists for
+        /// the provided query
+        /// </summary>
+        /// <param name="command"></param>
+        /// <exception cref="TransactionScopeRequired"></exception>
+        public static void ValidateAmbientTransactionExistsFor(
+            IQuery command
+        )
+        {
+            if (Transaction.Current == null)
+            {
+                throw new TransactionScopeRequired(command);
+            }
         }
     }
 }

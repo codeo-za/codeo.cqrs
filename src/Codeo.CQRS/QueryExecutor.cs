@@ -30,8 +30,8 @@ namespace Codeo.CQRS
         void Execute(IEnumerable<IQuery> queries);
     }
 
-    /// <inheritdoc />
-    public class QueryExecutor : IQueryExecutor
+    /// <inheritdoc cref="Codeo.CQRS.IQueryExecutor" />
+    public class QueryExecutor : Executor, IQueryExecutor
     {
         internal ICache CurrentCache => _cacheProvider?.Invoke();
         private readonly Func<ICache> _cacheProvider;
@@ -87,6 +87,7 @@ namespace Codeo.CQRS
 
             query.QueryExecutor = this;
             query.Cache ??= _cacheProvider();
+            ValidateTransactionIfRequiredFor(query);
             query.Validate();
             query.Execute();
         }

@@ -4,6 +4,7 @@ using System.Data.Common;
 using Dapper;
 using NUnit.Framework;
 using PeanutButter.TempDb.MySql.Data;
+// ReSharper disable MemberCanBePrivate.Global
 
 namespace Codeo.CQRS.Tests
 {
@@ -12,7 +13,7 @@ namespace Codeo.CQRS.Tests
     {
         private static TempDBMySql _db;
 
-        public static void OneTimeSetup()
+        public static void RunOneTimeSetupIfRequired()
         {
             if (_db != null)
             {
@@ -74,15 +75,6 @@ create table departments_tags(
                     $"TempDb is not set up"
                 );
             ;
-        }
-    }
-
-    public abstract class TestFixtureRequiringData
-    {
-        [OneTimeSetUp]
-        public void OneTimeSetup()
-        {
-            GlobalSetup.OneTimeSetup();
         }
     }
 }

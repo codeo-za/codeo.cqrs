@@ -6,13 +6,12 @@ using Newtonsoft.Json;
 namespace Codeo.CQRS
 {
     /// <summary>
-    /// The base contract for a query - useful as a collection type
+    /// Forms the shared contract for ICommand and IQuery
     /// </summary>
-    public interface IQuery
+    public interface IExecutor
     {
         /// <summary>
-        /// The caching implementation to use for this query,
-        /// when required
+        /// The cache implementation to use for sub-queries
         /// </summary>
         ICache Cache { get; set; }
 
@@ -31,6 +30,13 @@ namespace Codeo.CQRS
         /// Performs validation for this query
         /// </summary>
         void Validate();
+    }
+
+    /// <summary>
+    /// The base contract for a query - useful as a collection type
+    /// </summary>
+    public interface IQuery : IExecutor
+    {
     }
 
     /// <summary>

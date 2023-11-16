@@ -82,7 +82,8 @@ namespace Codeo.CQRS
         public CacheAttribute(
             int ttl,
             CacheExpiration expiration,
-            params string[] cacheKeyProperties)
+            params string[] cacheKeyProperties
+        )
         {
             TTL = ttl;
             CacheKeyProperties = new HashSet<string>(cacheKeyProperties);

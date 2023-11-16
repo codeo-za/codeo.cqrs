@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Transactions;
 using Codeo.CQRS.Caching;
 
 namespace Codeo.CQRS
@@ -31,8 +33,53 @@ namespace Codeo.CQRS
         void Execute(IEnumerable<ICommand> commands);
     }
 
-    /// <inheritdoc />
-    public class CommandExecutor : ICommandExecutor
+    /// <summary>
+    /// Provides shared functionality for CommandExecutor
+    /// and QueryExecutor
+    /// </summary>
+    public abstract class Executor
+    {
+        /// <summary>
+        /// Validates that a transaction scope exists if
+        /// the provided executor (or a base class)
+        /// is decorated with [RequiresTransaction]
+        /// </summary>
+        /// <param name="executor"></param>
+        protected void ValidateTransactionIfRequiredFor(
+            IExecutor executor
+        )
+        {
+            if (!RequiresTransaction(executor))
+            {
+                return;
+            }
+
+            TransactionScopes.ValidateAmbientTransactionExistsFor(executor);
+        }
+
+        private bool RequiresTransaction(
+            IExecutor executor
+        )
+        {
+            var type = executor.GetType();
+            if (TransactionAttributeCache.TryGetValue(type, out var cached))
+            {
+                return cached is not null;
+            }
+
+            var attrib = type.GetCustomAttributes(inherit: true)
+                .OfType<RequiresTransaction>()
+                .FirstOrDefault();
+            TransactionAttributeCache[type] = attrib;
+            return attrib is not null;
+        }
+
+        private static readonly ConcurrentDictionary<Type, RequiresTransaction>
+            TransactionAttributeCache = new();
+    }
+
+    /// <inheritdoc cref="Codeo.CQRS.ICommandExecutor" />
+    public class CommandExecutor : Executor, ICommandExecutor
     {
         private readonly Func<IQueryExecutor> _queryExecutorFactory;
         private readonly Func<ICache> _cacheFactory;
@@ -78,9 +125,11 @@ namespace Codeo.CQRS
             command.QueryExecutor ??= _queryExecutorFactory();
             command.CommandExecutor ??= this;
             command.Cache ??= _cacheFactory();
+            ValidateTransactionIfRequiredFor(command);
             command.Validate();
             command.Execute();
         }
+
 
         /// <inheritdoc />
         public T Execute<T>(ICommand<T> command)

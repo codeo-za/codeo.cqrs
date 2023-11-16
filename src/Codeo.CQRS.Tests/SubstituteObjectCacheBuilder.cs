@@ -1,16 +1,16 @@
 using System.Collections.Generic;
 using System.Runtime.Caching;
 using NSubstitute;
+using PeanutButter.RandomGenerators;
+using PeanutButter.Utils;
+// ReSharper disable AssignNullToNotNullAttribute
+// ReSharper disable ClassNeverInstantiated.Global
 
 namespace Codeo.CQRS.Tests
 {
-    public class SubstituteObjectCacheBuilder
+    public class SubstituteObjectCacheBuilder 
+        : GenericBuilder<SubstituteObjectCacheBuilder, ObjectCache>
     {
-        public static SubstituteObjectCacheBuilder Create()
-        {
-            return new SubstituteObjectCacheBuilder();
-        }
-
         private IDictionary<string, object> _backingStore;
 
         public SubstituteObjectCacheBuilder WithBackingStore(
@@ -20,7 +20,7 @@ namespace Codeo.CQRS.Tests
             return this;
         }
 
-        public ObjectCache Build()
+        public override ObjectCache Build()
         {
             var backingStore = _backingStore ?? new Dictionary<string, object>();
             var result = Substitute.For<ObjectCache>();
@@ -35,7 +35,7 @@ namespace Codeo.CQRS.Tests
         private static void MockEnumerableInterfaceOn(ObjectCache result, IDictionary<string, object> backingStore)
         {
             var foo = result as IEnumerable<KeyValuePair<string, object>>;
-            foo.GetEnumerator().Returns(ci => backingStore.GetEnumerator());
+            foo.GetEnumerator().Returns(_ => backingStore.GetEnumerator());
         }
 
         private static void MockRemoveMethodsOn(ObjectCache result, IDictionary<string, object> backingStore)
