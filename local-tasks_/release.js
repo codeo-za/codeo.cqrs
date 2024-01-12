@@ -13,11 +13,11 @@ gulp.task("release", async () => {
   if (!fullRelease) {
     const
       remote = process.env.GIT_REMOTE || process.env.GIT_OVERRIDE_REMOTE || "origin",
-      branch = process.env.GIT_BRANCH || process.env.GIT_OVERRIDE_BRANCH || "master"
-    reason = onPackMasterBranch
-      ? `Unable to push to remote ${remote} branch ${branch}`
-      : `Not on pack master branch `
-    console.error(`Unable to perform "full" release with tags: `);
+      branch = process.env.GIT_BRANCH || process.env.GIT_OVERRIDE_BRANCH || "master",
+      reason = onPackMasterBranch
+        ? `Unable to push to remote ${ remote } branch ${ branch }`
+        : `Not on pack master branch `
+    console.error(`Unable to perform "full" release with tags: ${reason}`);
   }
   return fullRelease
     ? runSequencePromise("purge", "test-dotnet", "pack", "commit-release", "tag", "push-tags")

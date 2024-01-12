@@ -84,6 +84,15 @@ namespace Codeo.CQRS
         public abstract void Validate();
 
         /// <summary>
+        /// To be used from Codeo.CQRS.Testability
+        /// </summary>
+        /// <param name="result"></param>
+        internal void SetResult(T result)
+        {
+            Result = result;
+        }
+
+        /// <summary>
         /// Validates that there currently is an active transaction
         /// </summary>
         /// <exception cref="TransactionScopeRequired"></exception>

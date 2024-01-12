@@ -135,5 +135,14 @@ namespace Codeo.CQRS
     {
         /// <inheritdoc />
         public T Result { get; protected set; }
+
+        /// <summary>
+        /// To be used from Codeo.CQRS.Testability
+        /// </summary>
+        /// <param name="result"></param>
+        internal void SetResult(T result)
+        {
+            Result = result;
+        }
     }
 }

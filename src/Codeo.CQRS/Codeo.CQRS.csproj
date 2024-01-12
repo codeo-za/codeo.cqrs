@@ -1,17 +1,21 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-<!--    TODO: add a README.md -->
-<!--    <PackageReadmeFile>README.md</PackageReadmeFile>-->
-    <DebugType>Portable</DebugType>
     <LangVersion>latest</LangVersion>
     <TargetFrameworks>netstandard2.0;net462</TargetFrameworks>
+    <DebugType>Portable</DebugType>
     <Configurations>Debug;Release</Configurations>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <AssemblyVersion>1.0.0</AssemblyVersion>
+    <WarningLevel>4</WarningLevel>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PublishRepositoryUrl>True</PublishRepositoryUrl>
     <IncludeSymbols>True</IncludeSymbols>
-    <AssemblyVersion>1.0.0</AssemblyVersion>
+    <IncludeSymbols>true</IncludeSymbols>
     <Dascription>
       Database-engine-agnostic implementation of the Command Query Responsibility Separation pattern
     </Dascription>
@@ -19,33 +23,36 @@
     <Owners>Codeo</Owners>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Copyright>Copyright 2019</Copyright>
-    <tags>CQRS data-access</tags>
-    <VersionPrefix>2.0.0</VersionPrefix>
+    <Tags>CQRS data-access</Tags>
+    <PackageVersion>2.0.0</PackageVersion>
     <DebugSymbols>true</DebugSymbols>
     <PackageIcon>content/icon.png</PackageIcon>
-    <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <LangVersion>latest</LangVersion>
-    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  
   <PropertyGroup Condition="$(TargetFramework)=='netstandard2.0'">
     <DefineConstants>NETSTANDARD</DefineConstants>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Dapper" Version="2.1.21" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="System.Runtime.Caching" Version="8.0.0" />
-    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Codeo.CQRS.Testability</_Parameter1>
+    </AssemblyAttribute>
   </ItemGroup>
   <ItemGroup>
-    <None Include="icon.png" Pack="true" PackagePath="content" />
+    <PackageReference Include="Dapper" Version="2.1.21"/>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
+    <PackageReference Include="System.Runtime.Caching" Version="8.0.0"/>
+    <PackageReference Include="System.ValueTuple" Version="4.5.0"/>
   </ItemGroup>
-
   <ItemGroup>
-    <Reference Include="System.Transactions" Condition="'$(TargetFramework)' == 'net462'" />
+    <None Include="icon.png" Pack="true" PackagePath="content"/>
   </ItemGroup>
-    
-  <Import Project="..\MonoForFramework.targets" />
+  <ItemGroup>
+    <Reference Include="System.Transactions" Condition="'$(TargetFramework)' == 'net462'"/>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="">
+      <Link>README.md</Link>
+    </None>
+  </ItemGroup>
+  <Import Project="..\MonoForFramework.targets"/>
 </Project>

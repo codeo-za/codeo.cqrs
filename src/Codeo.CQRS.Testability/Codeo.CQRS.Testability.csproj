@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net462</TargetFrameworks>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <RootNamespace>Codeo.CQRS</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PublishRepositoryUrl>True</PublishRepositoryUrl>
+    <IncludeSymbols>True</IncludeSymbols>
+    <IncludeSymbols>true</IncludeSymbols>
+    <Dascription>
+      Test helpers for Codeo.CQRS: Database-engine-agnostic implementation of the Command Query Responsibility Separation pattern
+    </Dascription>
+    <Authors>Codeo</Authors>
+    <Owners>Codeo</Owners>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Copyright>Copyright 2019</Copyright>
+    <Tags>CQRS data-access test tdd</Tags>
+    <PackageVersion>2.0.0</PackageVersion>
+    <DebugSymbols>true</DebugSymbols>
+    <PackageIcon>content/icon.png</PackageIcon>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="icon.png" Pack="true" PackagePath="content"/>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="NSubstitute" Version="5.1.0"/>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Codeo.CQRS\Codeo.CQRS.csproj"/>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="">
+      <Link>README.md</Link>
+    </None>
+  </ItemGroup>
+</Project>

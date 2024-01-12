@@ -4,11 +4,15 @@
     "description": "CQRS library with MySql/Dapper backend",
     "main": "gulpfile.js",
     "scripts": {
-        "test": "run-s \"zarro test-dotnet\"",
-        "build": "run-s \"zarro build\"",
-        "zarro": "cross-env BUILD_TOOLS_FOLDER=tools DOTNET_CORE=1 zarro",
-        "quick-pack": "run-s \"zarro quick-pack\"",
-        "release": "cross-env Configuration=Release run-s \"zarro release\""
+        "test": "zarro test-dotnet",
+        "build": "zarro @",
+        "zarro": "zarro",
+        "pack": "zarro @",
+        "prerelease": "run-s verify-up-to-date",
+        "release": "cross-env BUILD_CONFIGURATION=Release zarro release-nuget",
+        "prerelease-beta": "run-s verify-up-to-date",
+        "release-beta": "cross-env VERSION_INCREMENT_STRATEGY=prerelease zarro release-nuget",
+        "verify-up-to-date": "zarro @"
     },
     "author": "",
     "license": "ISC",
@@ -18,6 +22,6 @@
         "gulp-edit-xml": "^3.1.1",
         "npm-run-all": "^4.1.5",
         "simple-git": "^2.2.0",
-        "zarro": "^1.152.2"
+        "zarro": "^1.168.0"
     }
 }
