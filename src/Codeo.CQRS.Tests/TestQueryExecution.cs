@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Transactions;
@@ -8,7 +9,9 @@ using Codeo.CQRS.Exceptions;
 using Codeo.CQRS.Tests.Commands;
 using Codeo.CQRS.Tests.Models;
 using Codeo.CQRS.Tests.Queries;
+using Dapper;
 using NExpect;
+using NSubstitute;
 using NUnit.Framework;
 using PeanutButter.Utils;
 using static PeanutButter.RandomGenerators.RandomValueGen;
@@ -658,6 +661,12 @@ public class TestQueryExecution : TestFixtureRequiringData
                     .Not.To.Throw();
                 // Assert
             }
+        }
+
+        public class Person
+        {
+            public int Id { get; set; }
+            public string Name { get; set; }
         }
 
         [RequiresTransaction]

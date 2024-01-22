@@ -1,3 +1,4 @@
+using System.Diagnostics.Eventing.Reader;
 using NSubstitute;
 using PeanutButter.Utils;
 
@@ -6,6 +7,55 @@ namespace Codeo.CQRS.Testability.Tests;
 [TestFixture]
 public class SubstituteCommandExecutorExtensionsTests
 {
+    [Test]
+    public void ShouldBeAbleToMockBehaviorForAndInvocationOfAVoidCommand()
+    {
+        // Arrange
+        var called = 0;
+        var commandExecutor = Substitute.For<ICommandExecutor>()
+            .WithMocked<Chucks>(
+                _ =>
+                {
+                    called++;
+                    throw new AccessViolationException();
+                }
+            );
+        var id = GetRandomInt();
+        var cmd = new Chucks(id);
+
+        // Act
+        Expect(() => commandExecutor.Execute(cmd))
+            .To.Throw<AccessViolationException>();
+        // Assert
+        Expect(called)
+            .To.Equal(1);
+    }
+
+    [Test]
+    public void ShouldBeAbleToMockBehaviorForSpecificVoidCommand()
+    {
+        // Arrange
+        var id = GetRandomInt(10, 100);
+        var called = 0;
+        var commandExecutor = Substitute.For<ICommandExecutor>()
+            .WithMocked<Chucks>(
+                o => o.Id == id,
+                _ =>
+                {
+                    called++;
+                    throw new FieldAccessException();
+                }
+            );
+        var cmd = new Chucks(id);
+
+        // Act
+        Expect(() => commandExecutor.Execute(cmd))
+            .To.Throw<FieldAccessException>();
+        // Assert
+        Expect(called)
+            .To.Equal(1);
+    }
+
     [Test]
     public void ShouldBeAbleToMockConstantValue()
     {
@@ -65,6 +115,26 @@ public class SubstituteCommandExecutorExtensionsTests
         // Assert
         Expect(result)
             .To.Equal(expected);
+    }
+
+    public class Chucks : Command
+    {
+        public int Id { get; }
+
+        public Chucks(int id)
+        {
+            Id = id;
+        }
+
+        public override void Execute()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void Validate()
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public class Add : Command<int>

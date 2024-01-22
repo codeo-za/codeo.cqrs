@@ -24,7 +24,7 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Copyright>Copyright 2019</Copyright>
     <Tags>CQRS data-access</Tags>
-    <PackageVersion>2.0.0</PackageVersion>
+    <PackageVersion>2.0.1-2401121158.cc4a0cd</PackageVersion>
     <DebugSymbols>true</DebugSymbols>
     <PackageIcon>content/icon.png</PackageIcon>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>

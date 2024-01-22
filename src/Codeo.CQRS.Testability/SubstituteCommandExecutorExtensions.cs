@@ -6,6 +6,31 @@ namespace Codeo.CQRS;
 
 public static class SubstituteCommandExecutorExtensions
 {
+    public static ICommandExecutor WithMocked<TCommand>(
+        this ICommandExecutor commandExecutor,
+        Action<TCommand> commandLogic
+    ) where TCommand : ICommand
+    {
+        return commandExecutor.WithMocked(
+            o => true,
+            commandLogic
+        );
+    }
+
+    public static ICommandExecutor WithMocked<TCommand>(
+        this ICommandExecutor commandExecutor,
+        Expression<Predicate<TCommand>> argsPredicate,
+        Action<TCommand> commandLogic
+    ) where TCommand : ICommand
+    {
+        commandExecutor.When(
+            o => o.Execute(Arg.Is(argsPredicate))
+        ).Do(
+            ci => commandLogic(ci.Arg<TCommand>())
+        );
+        return commandExecutor;
+    }
+
     public static ICommandExecutor WithMocked<TCommand, TResult>(
         this ICommandExecutor commandExecutor,
         TResult result
@@ -18,25 +43,25 @@ public static class SubstituteCommandExecutorExtensions
     }
 
     public static ICommandExecutor WithMocked<TCommand, TResult>(
-        this ICommandExecutor queryExecutor,
+        this ICommandExecutor commandExecutor,
         Expression<Predicate<TCommand>> argsPredicate,
         TResult result
     ) where TCommand : Command<TResult>
     {
-        return queryExecutor.WithMocked(
+        return commandExecutor.WithMocked(
             argsPredicate,
             _ => result
         );
     }
 
     public static ICommandExecutor WithMocked<TCommand, TResult>(
-        this ICommandExecutor queryExecutor,
+        this ICommandExecutor commandExecutor,
         Expression<Predicate<TCommand>> argsPredicate,
         Func<TCommand, TResult> handler
     )
         where TCommand : Command<TResult>
     {
-        queryExecutor.Execute(Arg.Is(argsPredicate))
+        commandExecutor.Execute(Arg.Is(argsPredicate))
             .Returns(
                 ci =>
                 {
@@ -48,7 +73,7 @@ public static class SubstituteCommandExecutorExtensions
                     );
                 }
             );
-        return queryExecutor;
+        return commandExecutor;
     }
 
     private static T AttachResult<T>(
