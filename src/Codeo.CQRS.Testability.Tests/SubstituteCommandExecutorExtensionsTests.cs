@@ -1,4 +1,3 @@
-using System.Diagnostics.Eventing.Reader;
 using NSubstitute;
 using PeanutButter.Utils;
 
