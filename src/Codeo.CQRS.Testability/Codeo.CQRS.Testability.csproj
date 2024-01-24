@@ -18,13 +18,13 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Copyright>Copyright 2019</Copyright>
     <Tags>CQRS data-access test tdd</Tags>
-    <PackageVersion>2.0.2-2401221540.eb57813</PackageVersion>
+    <PackageVersion>2.0.2-2401241326.5c5e5b3</PackageVersion>
     <DebugSymbols>true</DebugSymbols>
     <PackageIcon>content/icon.png</PackageIcon>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System.Transactions" Condition="'$(TargetFramework)' == 'net462'" />
+    <Reference Include="System.Transactions" Condition="'$(TargetFramework)' == 'net462'"/>
   </ItemGroup>
   <ItemGroup>
     <None Include="icon.png" Pack="true" PackagePath="content"/>
