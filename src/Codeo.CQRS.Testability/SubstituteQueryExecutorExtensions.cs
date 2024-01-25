@@ -33,6 +33,17 @@ public static class SubstituteQueryExecutorExtensions
 
     public static IQueryExecutor WithMocked<TQuery, TResult>(
         this IQueryExecutor queryExecutor,
+        Func<TQuery, TResult> handler
+    ) where TQuery : Query<TResult>
+    {
+        return queryExecutor.WithMocked(
+            q => true,
+            handler
+        );
+    }
+
+    public static IQueryExecutor WithMocked<TQuery, TResult>(
+        this IQueryExecutor queryExecutor,
         Expression<Predicate<TQuery>> argsPredicate,
         Func<TQuery, TResult> handler
     )

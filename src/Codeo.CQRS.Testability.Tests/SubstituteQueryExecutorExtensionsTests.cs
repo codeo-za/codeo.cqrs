@@ -1,4 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using NSubstitute;
+using PeanutButter.Utils;
 using static PeanutButter.Utils.PyLike;
 
 namespace Codeo.CQRS.Testability.Tests;
@@ -65,6 +69,62 @@ public class SubstituteQueryExecutorExtensionsTests
         // Assert
         Expect(result)
             .To.Equal(expected);
+    }
+
+    [Test]
+    public void ShouldBeAbleToMockBodyOnly()
+    {
+        // Arrange
+        var store = new Dictionary<int, Person>()
+        {
+            [1] = GetRandom<Person>().With(o => o.Id = 1),
+            [2] = GetRandom<Person>().With(o => o.Id = 2),
+            [3] = GetRandom<Person>().With(o => o.Id = 3)
+        };
+        var queryExecutor = Substitute.For<IQueryExecutor>()
+            .WithMocked<FindPersonById, Person>(
+                q => store.GetValueOrDefault(q.Id)
+            );
+        var id1 = GetRandomInt(1, 3);
+        var missingId = GetRandomInt(10);
+        // Act
+        var result1 = queryExecutor.Execute(
+            new FindPersonById(id1)
+        );
+        var result2 = queryExecutor.Execute(
+            new FindPersonById(missingId)
+        );
+        // Assert
+        Expect(result1)
+            .To.Be(store[id1]);
+        Expect(result2)
+            .To.Be.Null();
+    }
+
+    public class FindPersonById : Query<Person>
+    {
+        public int Id { get; }
+
+        public FindPersonById(int id)
+        {
+            Id = id;
+        }
+
+        public override void Execute()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void Validate()
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class Person
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
     }
 
     public class Add : Query<int>

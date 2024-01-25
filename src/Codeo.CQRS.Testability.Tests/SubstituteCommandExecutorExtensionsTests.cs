@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using NSubstitute;
 using PeanutButter.Utils;
 
