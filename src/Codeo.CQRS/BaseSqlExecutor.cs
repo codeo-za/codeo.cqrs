@@ -7,6 +7,7 @@ using Dapper;
 using System.Collections.Concurrent;
 using System.Reflection;
 using Codeo.CQRS.Caching;
+using Codeo.CQRS.Internal;
 
 // ReSharper disable MemberCanBeProtected.Global
 

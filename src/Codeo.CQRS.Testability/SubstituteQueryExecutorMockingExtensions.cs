@@ -4,7 +4,7 @@ using NSubstitute;
 
 namespace Codeo.CQRS;
 
-public static class SubstituteQueryExecutorExtensions
+public static class SubstituteQueryExecutorMockingExtensions
 {
     public static IQueryExecutor WithMocked<TQuery, TResult>(
         this IQueryExecutor queryExecutor,

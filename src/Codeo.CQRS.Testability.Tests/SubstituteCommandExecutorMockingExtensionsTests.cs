@@ -6,7 +6,7 @@ using PeanutButter.Utils;
 namespace Codeo.CQRS.Testability.Tests;
 
 [TestFixture]
-public class SubstituteCommandExecutorExtensionsTests
+public class SubstituteCommandExecutorMockingExtensionsTests
 {
     [Test]
     public void ShouldBeAbleToMockBehaviorForAndInvocationOfAVoidCommand()
@@ -116,6 +116,69 @@ public class SubstituteCommandExecutorExtensionsTests
         // Assert
         Expect(result)
             .To.Equal(expected);
+    }
+
+    [TestFixture]
+    public class MoreFluentTesting
+    {
+        [Test]
+        public void ShouldBeAbleToTestExecutionEasier()
+        {
+            // Arrange
+            var id = GetRandomInt();
+            var calls = 0;
+            var commandExecutor = Substitute.For<ICommandExecutor>()
+                .WithMocked<Chucks>(
+                    q => q.Id == id,
+                    _ => calls++
+                );
+
+            // Act
+            commandExecutor.Execute(
+                new Chucks(id)
+            );
+
+            // Assert
+            commandExecutor.Received(1)
+                .Execute(
+                    Arg.Is<Chucks>(
+                        o => o.Id == id
+                    )
+                );
+            Expect(calls)
+                .To.Equal(1);
+            Expect(commandExecutor)
+                .To.Have.Executed<Chucks>(
+                    o => o.Id == id
+                );
+            Expect(commandExecutor)
+                .To.Have.Executed<Chucks>(
+                    o => o.Id == id,
+                    "this shouldn't fail!"
+                );
+            Expect(commandExecutor)
+                .To.Have.Executed<Chucks>(
+                    o => o.Id == id,
+                    () => "this too shouldn't fail!"
+                );
+            Expect(commandExecutor)
+                .To.Have.Executed<Chucks>(
+                    1,
+                    o => o.Id == id
+                );
+            Expect(commandExecutor)
+                .To.Have.Executed<Chucks>(
+                    1,
+                    o => o.Id == id,
+                    "this should also pass"
+                );
+            Expect(commandExecutor)
+                .To.Have.Executed<Chucks>(
+                    1,
+                    o => o.Id == id,
+                    () => "this too should pass"
+                );
+        }
     }
 
     public class Chucks : Command

@@ -8,7 +8,7 @@ using static PeanutButter.Utils.PyLike;
 namespace Codeo.CQRS.Testability.Tests;
 
 [TestFixture]
-public class SubstituteQueryExecutorExtensionsTests
+public class SubstituteQueryExecutorMockingExtensionsTests
 {
     [Test]
     public void ShouldBeAbleToMockConstantValue()
@@ -99,6 +99,64 @@ public class SubstituteQueryExecutorExtensionsTests
             .To.Be(store[id1]);
         Expect(result2)
             .To.Be.Null();
+    }
+
+    [TestFixture]
+    public class MoreFluentTesting
+    {
+        [Test]
+        public void ShouldBeAbleToTestExecutionEasier()
+        {
+            // Arrange
+            var person = GetRandom<Person>();
+            var queryExecutor = Substitute.For<IQueryExecutor>()
+                .WithMocked<FindPersonById, Person>(
+                    q => q.Id == person.Id,
+                    _ => person
+                );
+
+            // Act
+            var result = queryExecutor.Execute(
+                new FindPersonById(person.Id)
+            );
+
+            // Assert
+            queryExecutor.Received(1)
+                .Execute(
+                    Arg.Is<FindPersonById>(
+                        o => o.Id == person.Id
+                    )
+                );
+            Expect(result)
+                .To.Be(person);
+            Expect(queryExecutor)
+                .To.Have.Executed<FindPersonById>(
+                    o => o.Id == person.Id,
+                    "this shouldn't fail!"
+                );
+            Expect(queryExecutor)
+                .To.Have.Executed<FindPersonById>(
+                    o => o.Id == person.Id,
+                    () => "this too shouldn't fail!"
+                );
+            Expect(queryExecutor)
+                .To.Have.Executed<FindPersonById>(
+                    1,
+                    o => o.Id == person.Id
+                );
+            Expect(queryExecutor)
+                .To.Have.Executed<FindPersonById>(
+                    1,
+                    o => o.Id == person.Id,
+                    "this should also pass"
+                );
+            Expect(queryExecutor)
+                .To.Have.Executed<FindPersonById>(
+                    1,
+                    o => o.Id == person.Id,
+                    () => "this too should pass"
+                );
+        }
     }
 
     public class FindPersonById : Query<Person>

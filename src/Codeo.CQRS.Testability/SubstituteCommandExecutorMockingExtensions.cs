@@ -4,7 +4,7 @@ using NSubstitute;
 
 namespace Codeo.CQRS;
 
-public static class SubstituteCommandExecutorExtensions
+public static class SubstituteCommandExecutorMockingExtensions
 {
     public static ICommandExecutor WithMocked<TCommand>(
         this ICommandExecutor commandExecutor,
