@@ -15,6 +15,46 @@ namespace Codeo.CQRS;
 public static class SubstituteQueryExecutorMatchers
 {
     /// <summary>
+    /// Verify that the query executor executed any instance
+    /// of TQuery - most useful in negation, ie
+    /// Expect(queryExecutor)
+    ///   .Not.To.Have.Executed&lt;SomeQuery&gt;();
+    /// </summary>
+    /// <param name="have"></param>
+    /// <typeparam name="TQuery"></typeparam>
+    /// <returns></returns>
+    public static IMore<IQueryExecutor> Executed<TQuery>(
+        this IHave<IQueryExecutor> have
+    ) where TQuery : class, IQuery
+    {
+        return have.Executed<TQuery>(
+            times: 1,
+            _ => true
+        );
+    }
+
+    /// <summary>
+    /// Verify that the query executor executed any instance
+    /// of TQuery the given number of times - most useful
+    /// if the query has no identifying properties to
+    /// discriminate by.
+    /// </summary>
+    /// <param name="have"></param>
+    /// <param name="times"></param>
+    /// <typeparam name="TQuery"></typeparam>
+    /// <returns></returns>
+    public static IMore<IQueryExecutor> Executed<TQuery>(
+        this IHave<IQueryExecutor> have,
+        int times
+    ) where TQuery : class, IQuery
+    {
+        return have.Executed<TQuery>(
+            times,
+            _ => true
+        );
+    }
+
+    /// <summary>
     /// Verifies that the query executor executed queries
     /// of the given type, matching the provided matcher,
     /// exactly once

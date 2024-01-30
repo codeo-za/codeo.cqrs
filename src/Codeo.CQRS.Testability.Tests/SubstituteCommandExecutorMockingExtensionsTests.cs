@@ -148,6 +148,12 @@ public class SubstituteCommandExecutorMockingExtensionsTests
             Expect(calls)
                 .To.Equal(1);
             Expect(commandExecutor)
+                .Not.To.Have.Executed<Add>();
+            Expect(commandExecutor)
+                .To.Have.Executed<Chucks>();
+            Expect(commandExecutor)
+                .To.Have.Executed<Chucks>(times: 1);
+            Expect(commandExecutor)
                 .To.Have.Executed<Chucks>(
                     o => o.Id == id
                 );

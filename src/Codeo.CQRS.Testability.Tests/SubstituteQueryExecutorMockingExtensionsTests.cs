@@ -130,6 +130,10 @@ public class SubstituteQueryExecutorMockingExtensionsTests
             Expect(result)
                 .To.Be(person);
             Expect(queryExecutor)
+                .To.Have.Executed<FindPersonById>();
+            Expect(queryExecutor)
+                .To.Have.Executed<FindPersonById>(times: 1);
+            Expect(queryExecutor)
                 .To.Have.Executed<FindPersonById>(
                     o => o.Id == person.Id,
                     "this shouldn't fail!"

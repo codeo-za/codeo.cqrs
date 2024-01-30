@@ -11,6 +11,42 @@ namespace Codeo.CQRS;
 public static class SubstituteCommandExecutorMatchers
 {
     /// <summary>
+    /// Verify that the command executor executed any instance
+    /// of TCommand - most useful in negation, ie
+    /// Expect(commandExecutor)
+    ///   .Not.To.Have.Executed&lt;SomeCommand&gt;();
+    /// </summary>
+    /// <param name="have"></param>
+    /// <typeparam name="TCommand"></typeparam>
+    /// <returns></returns>
+    public static IMore<ICommandExecutor> Executed<TCommand>(
+        this IHave<ICommandExecutor> have
+    ) where TCommand : class, ICommand
+    {
+        return have.Executed<TCommand>(times: 1);
+    }
+
+    /// <summary>
+    /// Verify that the command executor executed any instance
+    /// of TCommand - useful when the command has no identifying
+    /// properties, or to be followed up with other assertions
+    /// </summary>
+    /// <param name="have"></param>
+    /// <param name="times"></param>
+    /// <typeparam name="TCommand"></typeparam>
+    /// <returns></returns>
+    public static IMore<ICommandExecutor> Executed<TCommand>(
+        this IHave<ICommandExecutor> have,
+        int times
+    ) where TCommand : class, ICommand
+    {
+        return have.Executed<TCommand>(
+            times,
+            _ => true
+        );
+    }
+
+    /// <summary>
     /// Verify that the command executor executed a command
     /// of the given type, matching the given matcher,
     /// exactly once only
