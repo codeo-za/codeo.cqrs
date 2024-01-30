@@ -85,18 +85,18 @@ public static class SubstituteQueryExecutorMatchers
     /// the required number of times
     /// </summary>
     /// <param name="have"></param>
-    /// <param name="count"></param>
+    /// <param name="times"></param>
     /// <param name="matcher"></param>
     /// <typeparam name="TQuery"></typeparam>
     /// <returns></returns>
     public static IMore<IQueryExecutor> Executed<TQuery>(
         this IHave<IQueryExecutor> have,
-        int count,
+        int times,
         Func<TQuery, bool> matcher
     ) where TQuery : class, IQuery
     {
         return have.Executed(
-            count,
+            times,
             matcher,
             NULL_STRING
         );
@@ -108,20 +108,20 @@ public static class SubstituteQueryExecutorMatchers
     /// the required number of times
     /// </summary>
     /// <param name="have"></param>
-    /// <param name="count"></param>
+    /// <param name="times"></param>
     /// <param name="matcher"></param>
     /// <param name="customMessage"></param>
     /// <typeparam name="TQuery"></typeparam>
     /// <returns></returns>
     public static IMore<IQueryExecutor> Executed<TQuery>(
         this IHave<IQueryExecutor> have,
-        int count,
+        int times,
         Func<TQuery, bool> matcher,
         string customMessage
     ) where TQuery : class, IQuery
     {
         return have.Executed(
-            count,
+            times,
             matcher,
             () => customMessage
         );
@@ -134,14 +134,14 @@ public static class SubstituteQueryExecutorMatchers
     /// the required number of times
     /// </summary>
     /// <param name="have"></param>
-    /// <param name="count"></param>
+    /// <param name="times"></param>
     /// <param name="matcher"></param>
     /// <param name="customMessageGenerator"></param>
     /// <typeparam name="TQuery"></typeparam>
     /// <returns></returns>
     public static IMore<IQueryExecutor> Executed<TQuery>(
         this IHave<IQueryExecutor> have,
-        int count,
+        int times,
         Func<TQuery, bool> matcher,
         Func<string> customMessageGenerator
     ) where TQuery : class, IQuery
@@ -154,9 +154,9 @@ public static class SubstituteQueryExecutorMatchers
                     return new EnforcedMatcherResult(false, "queryExecutor is null");
                 }
 
-                if (count < 0)
+                if (times < 0)
                 {
-                    return new EnforcedMatcherResult(false, "expected count set < 0");
+                    return new EnforcedMatcherResult(false, "expected times value is < 0");
                 }
 
                 var allQueriesOfType = actual.ReceivedCalls()
@@ -166,7 +166,7 @@ public static class SubstituteQueryExecutorMatchers
                     .ToArray();
                 var matches = allQueriesOfType.Where(matcher)
                     .ToArray();
-                var passed = matches.Length == count;
+                var passed = matches.Length == times;
                 var queryTypeName = typeof(TQuery).PrettyName();
                 var s = allQueriesOfType.Length == 1
                     ? ""
@@ -181,7 +181,7 @@ public static class SubstituteQueryExecutorMatchers
                         () => $@"Expected {
                             passed.AsNot()
                         }to have received {
-                            count
+                            times
                         } executions of {
                             typeof(TQuery).PrettyName()
                         }{moreInfo}",

@@ -18,7 +18,7 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Copyright>Copyright 2019</Copyright>
     <Tags>CQRS data-access test tdd</Tags>
-    <PackageVersion>2.0.2-2401251211.9248f56</PackageVersion>
+    <PackageVersion>2.0.2-2401300843.6cf7ae8</PackageVersion>
     <DebugSymbols>true</DebugSymbols>
     <PackageIcon>content/icon.png</PackageIcon>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
@@ -30,8 +30,8 @@
     <None Include="icon.png" Pack="true" PackagePath="content"/>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="NExpect" Version="2.0.64" />
-    <PackageReference Include="NExpect.Matchers.NSubstitute" Version="2.0.64" />
+    <PackageReference Include="NExpect" Version="2.0.64"/>
+    <PackageReference Include="NExpect.Matchers.NSubstitute" Version="2.0.64"/>
     <PackageReference Include="NSubstitute" Version="5.1.0"/>
   </ItemGroup>
   <ItemGroup>

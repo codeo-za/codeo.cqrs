@@ -81,18 +81,18 @@ public static class SubstituteCommandExecutorMatchers
     /// required number of times
     /// </summary>
     /// <param name="have"></param>
-    /// <param name="count"></param>
+    /// <param name="times"></param>
     /// <param name="matcher"></param>
     /// <typeparam name="TCommand"></typeparam>
     /// <returns></returns>
     public static IMore<ICommandExecutor> Executed<TCommand>(
         this IHave<ICommandExecutor> have,
-        int count,
+        int times,
         Func<TCommand, bool> matcher
     ) where TCommand : class, ICommand
     {
         return have.Executed(
-            count,
+            times,
             matcher,
             NULL_STRING
         );
@@ -104,20 +104,20 @@ public static class SubstituteCommandExecutorMatchers
     /// required number of times
     /// </summary>
     /// <param name="have"></param>
-    /// <param name="count"></param>
+    /// <param name="times"></param>
     /// <param name="matcher"></param>
     /// <param name="customMessage"></param>
     /// <typeparam name="TCommand"></typeparam>
     /// <returns></returns>
     public static IMore<ICommandExecutor> Executed<TCommand>(
         this IHave<ICommandExecutor> have,
-        int count,
+        int times,
         Func<TCommand, bool> matcher,
         string customMessage
     ) where TCommand : class, ICommand
     {
         return have.Executed(
-            count,
+            times,
             matcher,
             () => customMessage
         );
@@ -129,14 +129,14 @@ public static class SubstituteCommandExecutorMatchers
     /// required number of times
     /// </summary>
     /// <param name="have"></param>
-    /// <param name="count"></param>
+    /// <param name="times"></param>
     /// <param name="matcher"></param>
     /// <param name="customMessageGenerator"></param>
     /// <typeparam name="TCommand"></typeparam>
     /// <returns></returns>
     public static IMore<ICommandExecutor> Executed<TCommand>(
         this IHave<ICommandExecutor> have,
-        int count,
+        int times,
         Func<TCommand, bool> matcher,
         Func<string> customMessageGenerator
     ) where TCommand : class, ICommand
@@ -149,9 +149,9 @@ public static class SubstituteCommandExecutorMatchers
                     return new EnforcedMatcherResult(false, "queryExecutor is null");
                 }
 
-                if (count < 0)
+                if (times < 0)
                 {
-                    return new EnforcedMatcherResult(false, "expected count set < 0");
+                    return new EnforcedMatcherResult(false, "expected times value is < 0");
                 }
 
                 var allCommandsOfType = actual.ReceivedCalls()
@@ -161,7 +161,7 @@ public static class SubstituteCommandExecutorMatchers
                     .ToArray();
                 var matches = allCommandsOfType.Where(matcher)
                     .ToArray();
-                var passed = matches.Length == count;
+                var passed = matches.Length == times;
                 var commandTypeName = typeof(TCommand).PrettyName();
                 var s = allCommandsOfType.Length == 1
                     ? ""
@@ -176,7 +176,7 @@ public static class SubstituteCommandExecutorMatchers
                         () => $@"Expected {
                             passed.AsNot()
                         }to have received {
-                            count
+                            times
                         } executions of {
                             typeof(TCommand).PrettyName()
                         }{moreInfo}",
